@@ -73,7 +73,7 @@ nav {
 
 .btn-primary {
     background-color: var(--color-uhu-red);
-    color: white;
+    color: white !important;
     padding: 0.625rem 1.5rem;
     border-radius: 0.5rem;
     font-weight: 600;
@@ -348,8 +348,9 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 1.5rem;
+    margin: 0 auto 1.5rem;
 }
+
 
 .service-icon svg {
     width: 2rem;
@@ -487,3 +488,109 @@ footer {
     color: #6b7280;
     font-size: 0.875rem;
 }
+
+
+/* --- Formularios de registro y login */
+
+:root {
+    --color-uhu-red: #A50034;
+    --color-uhu-red-dark: #8B002C;
+}
+
+.body-form {
+    background-color: #ffffff;
+    color: #1a1a1a;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.login-container {
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+}
+
+.logo {
+    width: 305px;
+    margin-bottom: 10px;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.login-form input {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.login-form input:focus {
+    border-color: var(--color-uhu-red);
+}
+
+.login-form button {
+    background-color: var(--color-uhu-red);
+    color: #fff;
+    border: none;
+    padding: 14px;
+    border-radius: 6px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.login-form button:hover {
+    background-color: var(--color-uhu-red-dark);
+}
+
+.login-form input,
+.login-form select {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.login-form input:focus,
+.login-form select:focus {
+  border-color: var(--color-uhu-red);
+}
+
+.help-text {
+    font-size: 15px;
+    margin-top: 20px;
+    color: #a0002c;
+}
+
+.help-text a {
+    color: #001a80;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.help-text a:hover {
+    text-decoration: underline;
+}
+
+.form-usuarios {
+    background: white;
+    font-size: 13px;
+    color: #999;
+    margin-top: 40px;
+    line-height: 1.5;
+    padding: 0;
+}
+
+
