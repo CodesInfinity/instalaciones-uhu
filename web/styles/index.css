@@ -593,4 +593,419 @@ footer {
     padding: 0;
 }
 
+/* Página de error */
 
+.error-title {
+    color: var(--color-uhu-red);
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.error-message {
+    background-color: #fdf1f5;
+    border: 1px solid var(--color-uhu-red);
+    color: #700024;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.error-button {
+    display: inline-block;
+    background-color: var(--color-uhu-red);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.error-button:hover {
+    background-color: var(--color-uhu-red-dark);
+    transform: translateY(-2px);
+}
+
+.error-button:active {
+    transform: translateY(0);
+}
+
+/* =========================
+   Panel de administración
+   ========================= */
+
+.admin-container {
+    max-width: 1200px;
+    width: 95%;
+    margin: 2rem auto;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+}
+
+.admin-container h1.section-title {
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+}
+
+.admin-container p.section-description {
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+    color: #4b5563;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow-x: auto;
+}
+
+.admin-table th, .admin-table td {
+    padding: 12px;
+    border-bottom: 1px solid #ccc;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 0.95rem;
+}
+
+.admin-table th {
+    background-color: var(--color-uhu-red);
+    color: white;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.admin-actions a svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.2s ease;
+    stroke: var(--color-uhu-red-dark);
+}
+
+.admin-actions a:hover svg {
+    transform: scale(1.3);
+}
+
+/* Responsive tabla */
+@media (max-width: 768px) {
+    .admin-table, .admin-table thead, .admin-table tbody, .admin-table th, .admin-table td, .admin-table tr {
+        display: block;
+        width: 100%;
+    }
+    .admin-table thead tr {
+        display: none;
+    }
+    .admin-table td {
+        position: relative;
+        padding-left: 50%;
+        border: none;
+        border-bottom: 1px solid #ccc;
+        white-space: normal;
+    }
+    .admin-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 45%;
+        padding-left: 12px;
+        font-weight: bold;
+        white-space: nowrap;
+    }
+    .admin-actions {
+        justify-content: flex-start;
+    }
+}
+
+/* =========================
+   Formulario de edición/registro
+   ========================= */
+
+.user-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 1rem;
+    max-width: 500px;
+    margin: 2rem auto;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+}
+
+/* Contenedor input con icono */
+.input-icon {
+    position: relative;
+    width: 100%;
+}
+
+.input-icon svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    stroke: #8B002C;
+    pointer-events: none;
+}
+
+.input-icon input,
+.input-icon select {
+    padding-left: 40px;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-icon input:focus,
+.input-icon select:focus {
+    border-color: var(--color-uhu-red);
+    box-shadow: 0 0 6px rgba(165,0,52,0.2);
+}
+
+/* Botones */
+.user-form button {
+    cursor: pointer;
+    border: none;
+    font-weight: 600;
+    background-color: var(--color-uhu-red);
+    color: white;
+    padding: 12px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.user-form button:hover {
+    background-color: var(--color-uhu-red-dark);
+    transform: translateY(-2px);
+}
+
+/* Botón cancelar */
+.user-form .btn-secondary {
+    margin-top: 8px;
+    text-align: center;
+    background-color: white;
+    border: 2px solid var(--color-uhu-red);
+    color: var(--color-uhu-red);
+    font-weight: 700;
+}
+
+.user-form .btn-secondary:hover {
+    background-color: var(--color-uhu-red);
+    color: white;
+}
+
+/* Responsive formulario */
+@media (max-width: 480px) {
+    .user-form input,
+    .user-form select,
+    .user-form button {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .input-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+/* =========================
+   Mensajes de error dentro del formulario
+   ========================= */
+
+.form-error {
+    background-color: #fdf1f5;
+    border: 1px solid var(--color-uhu-red);
+    color: #700024;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+/* Wrapper con scroll si la tabla es muy ancha */
+.table-wrapper {
+    overflow-x: auto;
+}
+
+/* Tabla estilo moderno */
+.admin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+/* Encabezado con color UHU y texto blanco */
+.admin-table th {
+    background-color: var(--color-uhu-red);
+    color: white;
+    padding: 14px;
+    font-weight: 600;
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+/* Celdas con espacio y separación */
+.admin-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.9rem;
+}
+
+/* Hover fila */
+.admin-table tbody tr:hover {
+    background-color: #fef2f2;
+    transition: background 0.2s;
+}
+
+/* Acciones con iconos más pequeños y espaciados */
+.admin-actions a svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--color-uhu-red-dark);
+    transition: transform 0.2s ease, stroke 0.2s ease;
+}
+
+.admin-actions a:hover svg {
+    transform: scale(1.3);
+    stroke: var(--color-uhu-red);
+}
+
+/* Responsive tabla */
+@media (max-width: 768px) {
+    .admin-table thead {
+        display: none;
+    }
+    .admin-table tr {
+        display: block;
+        margin-bottom: 1rem;
+    }
+    .admin-table td {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 12px;
+        border-bottom: 1px solid #ccc;
+    }
+    .admin-table td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        color: #555;
+    }
+    .admin-actions {
+        justify-content: flex-end;
+        gap: 0.8rem;
+    }
+}
+
+
+.user-form-container {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    font-family: 'Inter', sans-serif;
+}
+
+.user-form-container h1.section-title {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+    color: #1a1a1a;
+}
+
+.user-form-container p.section-description {
+    font-size: 1rem;
+    color: #4b5563;
+    margin-bottom: 1.5rem;
+}
+
+/* Inputs y selects */
+.user-form input,
+.user-form select {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.user-form input:focus,
+.user-form select:focus {
+    border-color: var(--color-uhu-red);
+    box-shadow: 0 0 6px rgba(165,0,52,0.2);
+}
+
+/* Botones */
+.user-form button,
+.user-form .btn-secondary {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
+    margin-top: 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.user-form button.btn-primary {
+    background-color: var(--color-uhu-red);
+    color: white;
+    border: none;
+}
+
+.user-form button.btn-primary:hover {
+    background-color: var(--color-uhu-red-dark);
+    transform: translateY(-2px);
+}
+
+.user-form .btn-secondary {
+    display: inline-block;
+    text-decoration: none;
+    background: white;
+    border: 2px solid var(--color-uhu-red);
+    color: var(--color-uhu-red);
+}
+
+.user-form .btn-secondary:hover {
+    background-color: var(--color-uhu-red);
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .user-form-container {
+        padding: 1rem;
+    }
+    .user-form input,
+    .user-form select,
+    .user-form button,
+    .user-form .btn-secondary {
+        font-size: 14px;
+        padding: 10px;
+    }
+}

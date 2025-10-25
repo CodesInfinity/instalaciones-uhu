@@ -18,7 +18,7 @@
             <a href="/instalaciones-uhu-master">
                 <img src="../img/logoUHU._Horizontal_Color_Positivo.svg" alt="uhu.es logo" class="logo">
             </a>
-            <form class="login-form" action="/registro" method="post">
+            <form class="login-form" action="/instalaciones-uhu-master/usuario/save" method="post">
                 <input type="text" name="dni" placeholder="DNI" required>
                 <input type="text" name="nombre" placeholder="Nombre completo" required>
                 <input type="email" name="email" placeholder="Correo electrónico" required>
