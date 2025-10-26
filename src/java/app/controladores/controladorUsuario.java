@@ -106,16 +106,17 @@ public class controladorUsuario extends HttpServlet {
             String rolParam = request.getParameter("rol");
 
             try {
-                if (dni == null || nombre == null || email == null || password == null || rolParam == null
-                        || dni.isEmpty() || nombre.isEmpty() || email.isEmpty() || password.isEmpty() || rolParam.isEmpty()) {
-                    throw new Exception("Campos vacíos");
+                // Validar campos requeridos (excepto password en edición)
+                if (dni == null || nombre == null || email == null || rolParam == null
+                        || dni.isEmpty() || nombre.isEmpty() || email.isEmpty() || rolParam.isEmpty()) {
+                    throw new Exception("Campos requeridos vacíos");
                 }
 
                 int rol = Integer.parseInt(rolParam);
                 Usuario usuario;
 
                 if (idParam != null && !idParam.isEmpty()) {
-                    // Edición
+                    // EDICIÓN - Password es opcional
                     Long id = Long.parseLong(idParam);
                     usuario = em.find(Usuario.class, id);
                     if (usuario == null) {
@@ -125,11 +126,19 @@ public class controladorUsuario extends HttpServlet {
                     usuario.setDni(dni);
                     usuario.setNombre(nombre);
                     usuario.setEmail(email);
-                    usuario.setPassword(password);
                     usuario.setRol(rol);
 
+                    // Solo actualizar password si se proporcionó uno nuevo
+                    if (password != null && !password.isEmpty()) {
+                        usuario.setPassword(password);
+                    }
+
                 } else {
-                    // Registro
+                    // REGISTRO - Password es requerido
+                    if (password == null || password.isEmpty()) {
+                        throw new Exception("La contraseña es requerida para registro");
+                    }
+
                     Usuario existente = findByEmailOrDni(email, dni);
                     if (existente != null) {
                         request.setAttribute("msg", "El usuario ya está registrado con ese email o DNI");
