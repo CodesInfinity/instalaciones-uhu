@@ -11,13 +11,15 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
 import jakarta.servlet.RequestDispatcher;
 import java.io.IOException;
-import java.io.PrintWriter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.UserTransaction;
+import jakarta.xml.bind.DatatypeConverter;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.logging.Level;
@@ -55,17 +57,17 @@ public class controladorUsuario extends HttpServlet {
                 request.setAttribute("usuarios", usuarios);
                 forward(request, response, "/WEB-INF/vistas/panelUsuarios.jsp");
             }
-            case "/edit" -> {
+            case "/editar" -> {
                 String idParam = request.getParameter("id");
                 if (idParam != null) {
                     Usuario usuario = em.find(Usuario.class, Long.parseLong(idParam));
                     request.setAttribute("usuario", usuario);
-                    forward(request, response, "/WEB-INF/vistas/editUsuario.jsp");
+                    forward(request, response, "/WEB-INF/vistas/editarUsuario.jsp");
                 } else {
                     forwardError(request, response, "ID de usuario no proporcionado.");
                 }
             }
-            case "/delete" -> {
+            case "/borrar" -> {
                 String idParam = request.getParameter("id");
                 if (idParam != null) {
                     borrarUsuario(Long.parseLong(idParam));
@@ -98,12 +100,15 @@ public class controladorUsuario extends HttpServlet {
         String accion = request.getPathInfo();
 
         if ("/save".equals(accion)) {
+
             String idParam = request.getParameter("id");
             String dni = request.getParameter("dni");
             String nombre = request.getParameter("nombre");
             String email = request.getParameter("email");
             String password = request.getParameter("password");
             String rolParam = request.getParameter("rol");
+
+            String hash = "35454B055CC325EA1AF2126E27707052";
 
             try {
                 // Validar campos requeridos (excepto password en edición)
@@ -130,6 +135,7 @@ public class controladorUsuario extends HttpServlet {
 
                     // Solo actualizar password si se proporcionó uno nuevo
                     if (password != null && !password.isEmpty()) {
+                        password = hashPassword(password);
                         usuario.setPassword(password);
                     }
 
@@ -146,6 +152,7 @@ public class controladorUsuario extends HttpServlet {
                         return;
                     }
 
+                    password = hashPassword(password);
                     usuario = new Usuario(dni, nombre, email, password, rol);
                 }
 
@@ -237,4 +244,13 @@ public class controladorUsuario extends HttpServlet {
         forward(request, response, "/WEB-INF/vistas/error.jsp");
     }
 
-}
+    private String hashPassword(String password) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        md.update(password.getBytes());
+        byte[] digest = md.digest();
+        String myHash = DatatypeConverter
+                .printHexBinary(digest).toUpperCase();
+        return myHash;
+    }
+
+    }
