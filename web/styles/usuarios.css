@@ -453,7 +453,7 @@ body {
     flex: 1;
 }
 
-.panel-badge {
+.badge {
     display: inline-block;
     padding: 0.5rem 1rem;
     background-color: var(--color-uhu-red-light);
@@ -476,6 +476,48 @@ body {
 .panel-title-section p {
     color: var(--color-text-secondary);
     margin: 0;
+}
+
+/* ============================================
+   INFORMACIÓN DEL USUARIO EN EL HEADER - ESTILO UHU
+   ============================================ */
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto;
+    color: var(--color-gray-600);
+    font-size: 0.9rem;
+}
+
+.user-role {
+    padding: 0.375rem 0.75rem;
+    background-color: var(--color-uhu-red-light);
+    color: var(--color-uhu-red);
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.logout-btn {
+    padding: 0.5rem 1rem;
+    background: var(--color-uhu-red);
+    color: white;
+    text-decoration: none;
+    border-radius: var(--border-radius-md);
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all var(--transition-base);
+    border: 2px solid var(--color-uhu-red);
+}
+
+.logout-btn:hover {
+    background: var(--color-uhu-red-dark);
+    border-color: var(--color-uhu-red-dark);
+    transform: translateY(-1px);
 }
 
 /* ============================================
@@ -603,6 +645,10 @@ body {
     font-weight: 500;
 }
 
+/* ============================================
+   BADGES DE ROLES - ESTILO UHU
+   ============================================ */
+
 .role-badge {
     display: inline-block;
     padding: 0.375rem 0.75rem;
@@ -611,6 +657,11 @@ body {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+}
+
+.role-admin {
+    background-color: var(--color-uhu-red-light);
+    color: var(--color-uhu-red);
 }
 
 .role-user {
@@ -684,6 +735,32 @@ body {
 }
 
 /* ============================================
+   MENSAJES DE ALERTA - ESTILO UHU
+   ============================================ */
+
+.auth-error {
+    color: #dc3545;
+    padding: 0.75rem;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: var(--border-radius-md);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.auth-success {
+    color: #155724;
+    padding: 0.75rem;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: var(--border-radius-md);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+/* ============================================
    RESPONSIVE DESIGN
    ============================================ */
 
@@ -715,6 +792,12 @@ body {
     
     .panel-logo img {
         height: 50px;
+    }
+    
+    .user-info {
+        margin-left: 0;
+        flex-wrap: wrap;
+        justify-content: center;
     }
     
     .table-header {
@@ -781,6 +864,12 @@ body {
     .table-header h2 {
         font-size: 1.25rem;
     }
+    
+    .user-info {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: center;
+    }
 }
 
 @media (max-width: 1024px) {
@@ -788,5 +877,9 @@ body {
         flex-direction: column;
         text-align: center;
         gap: 1rem;
+    }
+    
+    .user-info {
+        margin-left: 0;
     }
 }
