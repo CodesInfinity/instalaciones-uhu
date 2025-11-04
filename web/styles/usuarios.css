@@ -1,17 +1,12 @@
-/*
-Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
-Click nbfs://nbhost/SystemFileSystem/Templates/ClientSide/css.css to edit this template
-*/
 /* 
     Created on : 26 oct 2025, 11:13:13
     Author     : agustinrodriguez
 */
 
 /* ============================================
-   INSTALACIONES UHU - ESTILOS PARA VISTAS DE USUARIOS
+   VARIABLES Y CONFIGURACIÓN GLOBAL
    ============================================ */
 
-/* --- IMPORTACIONES Y VARIABLES --- */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
 
 :root {
@@ -43,7 +38,10 @@ Click nbfs://nbhost/SystemFileSystem/Templates/ClientSide/css.css to edit this t
     --transition-slow: 0.5s ease;
 }
 
-/* --- RESET Y ESTILOS BASE --- */
+/* ============================================
+   RESET Y ESTILOS BASE
+   ============================================ */
+
 * {
     margin: 0;
     padding: 0;
@@ -58,7 +56,7 @@ body {
 }
 
 /* ============================================
-   LAYOUT DE AUTENTICACIÓN (LOGIN, REGISTRO, ERROR)
+   LAYOUT DE AUTENTICACIÓN
    ============================================ */
 
 .auth-body {
@@ -75,7 +73,6 @@ body {
     max-width: 100%;
 }
 
-/* Tarjeta base para formularios */
 .auth-card {
     max-width: 440px;
     margin: 0 auto;
@@ -114,7 +111,7 @@ body {
 }
 
 /* ============================================
-   FORMULARIOS DE AUTENTICACIÓN
+   FORMULARIOS
    ============================================ */
 
 .auth-form {
@@ -172,66 +169,77 @@ body {
     color: var(--color-gray-400);
 }
 
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.form-hint {
+    display: block;
+    margin-top: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--color-gray-500);
+}
+
 /* ============================================
-   BOTONES DE AUTENTICACIÓN
+   BOTONES
    ============================================ */
-/* BOTONES DE AUTENTICACIÓN - VERSIÓN CORREGIDA */
+
 .btn-auth-primary {
     width: 100%;
-    padding: 0.875rem !important;
-    background-color: var(--color-uhu-red) !important;
-    color: white !important;
-    border: 2px solid var(--color-uhu-red) !important;
-    border-radius: var(--border-radius-md) !important;
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    transition: all var(--transition-base) !important;
-    margin-top: 0.5rem !important;
-    box-sizing: border-box !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 50px !important;
-    text-decoration: none !important;
+    padding: 0.875rem;
+    background-color: var(--color-uhu-red);
+    color: white;
+    border: 2px solid var(--color-uhu-red);
+    border-radius: var(--border-radius-md);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50px;
+    text-decoration: none;
 }
 
 .btn-auth-primary:hover {
-    background-color: var(--color-uhu-red-dark) !important;
-    border-color: var(--color-uhu-red-dark) !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 16px rgba(165, 0, 52, 0.25) !important;
+    background-color: var(--color-uhu-red-dark);
+    border-color: var(--color-uhu-red-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(165, 0, 52, 0.25);
 }
 
 .btn-auth-secondary {
-    display: flex !important;
-    width: 100% !important;
-    padding: 0.875rem !important;
-    background-color: white !important;
-    color: var(--color-uhu-red) !important;
-    border: 2px solid var(--color-uhu-red) !important;
-    border-radius: var(--border-radius-md) !important;
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    text-decoration: none !important;
-    text-align: center !important;
-    transition: all var(--transition-base) !important;
-    box-sizing: border-box !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-height: 50px !important;
-    margin-top: 0.5rem !important;
+    display: flex;
+    width: 100%;
+    padding: 0.875rem;
+    background-color: white;
+    color: var(--color-uhu-red);
+    border: 2px solid var(--color-uhu-red);
+    border-radius: var(--border-radius-md);
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    transition: all var(--transition-base);
+    align-items: center;
+    justify-content: center;
+    min-height: 50px;
+    margin-top: 0.5rem;
 }
 
 .btn-auth-secondary:hover {
-    background-color: var(--color-uhu-red) !important;
-    color: white !important;
-    border-color: var(--color-uhu-red) !important;
-    transform: translateY(-2px) !important;
+    background-color: var(--color-uhu-red);
+    color: white;
+    border-color: var(--color-uhu-red);
+    transform: translateY(-2px);
 }
 
 /* ============================================
-   ELEMENTOS ADICIONALES DE AUTENTICACIÓN
+   COMPONENTES DE AUTENTICACIÓN
    ============================================ */
 
 .auth-divider {
@@ -270,6 +278,28 @@ body {
 
 .auth-footer p {
     margin: 0.25rem 0;
+}
+
+.auth-error {
+    color: #dc3545;
+    padding: 0.75rem;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: var(--border-radius-md);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.auth-success {
+    color: #155724;
+    padding: 0.75rem;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: var(--border-radius-md);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 0.875rem;
 }
 
 /* ============================================
@@ -329,7 +359,7 @@ body {
 }
 
 /* ============================================
-   FORMULARIO DE EDICIÓN DE USUARIO
+   FORMULARIO DE EDICIÓN
    ============================================ */
 
 .edit-card {
@@ -379,13 +409,6 @@ body {
     left: 0.875rem;
     width: 16px;
     height: 16px;
-}
-
-.form-hint {
-    display: block;
-    margin-top: 0.375rem;
-    font-size: 0.75rem;
-    color: var(--color-gray-500);
 }
 
 .form-actions {
@@ -478,10 +501,6 @@ body {
     margin: 0;
 }
 
-/* ============================================
-   INFORMACIÓN DEL USUARIO EN EL HEADER - ESTILO UHU
-   ============================================ */
-
 .user-info {
     display: flex;
     align-items: center;
@@ -520,8 +539,15 @@ body {
     transform: translateY(-1px);
 }
 
+.panel-footer {
+    margin-top: 2rem;
+    text-align: center;
+    color: var(--color-gray-500);
+    font-size: 0.875rem;
+}
+
 /* ============================================
-   TABLA DE USUARIOS
+   TABLAS
    ============================================ */
 
 .table-container {
@@ -645,10 +671,6 @@ body {
     font-weight: 500;
 }
 
-/* ============================================
-   BADGES DE ROLES - ESTILO UHU
-   ============================================ */
-
 .role-badge {
     display: inline-block;
     padding: 0.375rem 0.75rem;
@@ -717,55 +739,446 @@ body {
     height: 1.25rem;
 }
 
-.panel-footer {
-    margin-top: 2rem;
-    text-align: center;
-    color: var(--color-gray-500);
-    font-size: 0.875rem;
-}
-
 /* ============================================
-   FORM ROW PARA REGISTRO
+   NAVBAR PROFESIONAL
    ============================================ */
 
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+.professional-nav {
+    background: #ffffff;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid var(--color-gray-100);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+}
+
+.nav-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.nav-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 80px;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+}
+
+.brand-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
     gap: 1rem;
 }
 
-/* ============================================
-   MENSAJES DE ALERTA - ESTILO UHU
-   ============================================ */
-
-.auth-error {
-    color: #dc3545;
-    padding: 0.75rem;
-    background: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: var(--border-radius-md);
-    margin-bottom: 1.5rem;
-    text-align: center;
-    font-size: 0.875rem;
+.brand-logo {
+    height: 42px;
+    width: auto;
 }
 
-.auth-success {
-    color: #155724;
-    padding: 0.75rem;
-    background: #d4edda;
-    border: 1px solid #c3e6cb;
-    border-radius: var(--border-radius-md);
-    margin-bottom: 1.5rem;
-    text-align: center;
+.brand-subtitle {
     font-size: 0.875rem;
+    color: var(--color-gray-600);
+    font-weight: 500;
+    margin-left: 0.5rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--color-gray-200);
+}
+
+.nav-menu-desktop {
+    display: flex;
+    align-items: center;
+    gap: 3rem;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2.5rem;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: var(--color-gray-700);
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 0.5rem 0;
+    position: relative;
+    transition: color var(--transition-base);
+}
+
+.nav-link:hover {
+    color: var(--color-uhu-red);
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--color-uhu-red);
+    transition: width var(--transition-base);
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius-lg);
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
+    position: relative;
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.user-profile:hover {
+    background: var(--color-gray-100);
+    border-color: var(--color-gray-300);
+}
+
+.user-profile:hover .user-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.user-avatar-nav {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-uhu-red) 0%, var(--color-uhu-red-dark) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.user-avatar-nav svg {
+    width: 20px;
+    height: 20px;
+}
+
+.user-info-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.user-name-nav {
+    font-weight: 600;
+    color: var(--color-gray-900);
+    font-size: 0.875rem;
+    margin-left: 10px;
+}
+
+.user-role-nav {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.user-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: white;
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-xl);
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all var(--transition-base);
+    z-index: 1001;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    text-decoration: none;
+    color: var(--color-gray-700);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-bottom: 1px solid var(--color-gray-100);
+    transition: all var(--transition-base);
+}
+
+.dropdown-item:hover {
+    background: var(--color-gray-50);
+    color: var(--color-uhu-red);
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item svg {
+    width: 16px;
+    height: 16px;
+}
+
+.logout-item {
+    color: #dc2626;
+}
+
+.logout-item:hover {
+    color: #b91c1c;
+    background: #fef2f2;
+}
+
+.auth-buttons {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.btn-nav {
+    padding: 0.625rem 1.5rem;
+    border-radius: var(--border-radius-md);
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all var(--transition-base);
+    border: 2px solid transparent;
+}
+
+.btn-nav-login {
+    color: var(--color-gray-700);
+    background: transparent;
+    border-color: var(--color-gray-300);
+}
+
+.btn-nav-login:hover {
+    background: var(--color-gray-50);
+    border-color: var(--color-gray-400);
+    transform: translateY(-1px);
+}
+
+.btn-nav-primary {
+    background: var(--color-uhu-red);
+    color: white;
+    border-color: var(--color-uhu-red);
+}
+
+.btn-nav-primary:hover {
+    background: var(--color-uhu-red-dark);
+    border-color: var(--color-uhu-red-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(165, 0, 52, 0.2);
+}
+
+.btn-nav-secondary {
+    background: white;
+    color: var(--color-uhu-red);
+    border-color: var(--color-uhu-red);
+}
+
+.btn-nav-secondary:hover {
+    background: var(--color-uhu-red);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.nav-toggle {
+    display: none;
+    flex-direction: column;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    gap: 4px;
+}
+
+.hamburger-line {
+    width: 24px;
+    height: 2px;
+    background: var(--color-gray-700);
+    transition: all var(--transition-base);
+    border-radius: 2px;
+}
+
+.nav-toggle.active .hamburger-line:nth-child(1) {
+    transform: rotate(45deg) translate(3px, 3px);
+}
+
+.nav-toggle.active .hamburger-line:nth-child(2) {
+    opacity: 0;
+}
+
+.nav-toggle.active .hamburger-line:nth-child(3) {
+    transform: rotate(-45deg) translate(6px, -6px);
+}
+
+.nav-menu-mobile {
+    display: none;
+    background: white;
+    border-top: 1px solid var(--color-gray-200);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.nav-menu-mobile.active {
+    display: block;
+}
+
+.mobile-nav-content {
+    padding: 2rem;
+}
+
+.mobile-nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.mobile-nav-link {
+    text-decoration: none;
+    color: var(--color-gray-700);
+    font-weight: 500;
+    font-size: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-gray-100);
+    transition: color var(--transition-base);
+}
+
+.mobile-nav-link:hover {
+    color: var(--color-uhu-red);
+}
+
+.mobile-user-section {
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.mobile-user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.mobile-user-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.mobile-nav-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mobile-auth-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 1rem;
+}
+
+/* ============================================
+   UTILIDADES Y ESTADOS
+   ============================================ */
+
+/* Quitar bordes al hacer clic */
+*:focus {
+    outline: none !important;
+}
+
+*:focus-visible {
+    outline: 2px solid var(--color-uhu-red) !important;
+    outline-offset: 2px !important;
+}
+
+/* Prevenir scroll cuando el menú está abierto */
+body.menu-open {
+    overflow: hidden;
+}
+
+/* Animaciones */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.panel-container,
+.hero-section,
+.services-grid {
+    animation: fadeInUp 0.6s ease;
+}
+
+.auth-error,
+.auth-success {
+    animation: slideIn 0.3s ease;
 }
 
 /* ============================================
    RESPONSIVE DESIGN
    ============================================ */
 
+@media (max-width: 1024px) {
+    .nav-container {
+        padding: 0 1.5rem;
+    }
+    
+    .nav-links {
+        gap: 2rem;
+    }
+    
+    .nav-menu-desktop {
+        gap: 2rem;
+    }
+    
+    .panel-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .user-info {
+        margin-left: 0;
+    }
+}
+
 @media (max-width: 768px) {
-    /* Autenticación */
     .auth-card {
         margin: 1rem;
         padding: 2rem 1.5rem;
@@ -783,7 +1196,38 @@ body {
         flex-direction: column;
     }
     
-    /* Panel */
+    .nav-menu-desktop {
+        display: none;
+    }
+    
+    .nav-toggle {
+        display: flex;
+    }
+    
+    .nav-content {
+        height: 70px;
+    }
+    
+    .nav-container {
+        padding: 0 1rem;
+    }
+    
+    .brand-logo {
+        height: 36px;
+    }
+    
+    .brand-subtitle {
+        font-size: 0.8rem;
+        padding-left: 0.75rem;
+        margin-left: 0.25rem;
+    }
+    
+    .btn-nav.mobile {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+    
     .panel-header {
         flex-direction: column;
         text-align: center;
@@ -814,7 +1258,6 @@ body {
         padding: 1rem;
     }
     
-    /* Formularios */
     .form-row {
         grid-template-columns: 1fr;
         gap: 1rem;
@@ -830,6 +1273,22 @@ body {
 }
 
 @media (max-width: 640px) {
+    .nav-content {
+        height: 65px;
+    }
+    
+    .brand-logo {
+        height: 32px;
+    }
+    
+    .brand-subtitle {
+        display: none;
+    }
+    
+    .mobile-nav-content {
+        padding: 1.5rem;
+    }
+    
     .panel-header {
         padding: 1.5rem;
         margin-bottom: 1rem;
@@ -869,17 +1328,5 @@ body {
         flex-direction: column;
         gap: 0.5rem;
         align-items: center;
-    }
-}
-
-@media (max-width: 1024px) {
-    .panel-header {
-        flex-direction: column;
-        text-align: center;
-        gap: 1rem;
-    }
-    
-    .user-info {
-        margin-left: 0;
     }
 }

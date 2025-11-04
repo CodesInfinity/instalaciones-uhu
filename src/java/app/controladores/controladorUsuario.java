@@ -50,14 +50,22 @@ public class controladorUsuario extends HttpServlet {
                 // El AdminFilter ya verificó los permisos
                 List<Usuario> usuarios = obtenerUsuarios();
                 request.setAttribute("usuarios", usuarios);
-                forward(request, response, "/WEB-INF/vistas/admin/panelUsuarios.jsp");
+                // Cambio: Usar el layout con vista parcial
+                setLayoutAttributes(request, "Panel de Usuarios", 
+                    "Gestiona todos los usuarios registrados en el sistema de instalaciones deportivas");
+                request.setAttribute("pageContent", "../admin/panelUsuarios.jsp");
+                forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
             }
             case "/editar" -> {
                 String idParam = request.getParameter("id");
                 if (idParam != null) {
                     Usuario usuario = em.find(Usuario.class, Long.parseLong(idParam));
                     request.setAttribute("usuario", usuario);
-                    forward(request, response, "/WEB-INF/vistas/admin/editarUsuario.jsp");
+                    // Cambio: Usar el layout con vista parcial
+                    setLayoutAttributes(request, "Editar Usuario", 
+                        "Modifica los datos del usuario seleccionado");
+                    request.setAttribute("pageContent", "../admin/editarUsuario.jsp");
+                    forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
                 } else {
                     forwardError(request, response, "ID de usuario no proporcionado.");
                 }
@@ -229,13 +237,23 @@ public class controladorUsuario extends HttpServlet {
             request.setAttribute("rol", rolParam);
 
             if (idParam != null && !idParam.trim().isEmpty()) {
+                // Cambio: En caso de error en edición, usar el layout
                 request.setAttribute("error", "Error al actualizar usuario: " + e.getMessage());
-                forward(request, response, "/WEB-INF/vistas/admin/editarUsuario.jsp");
+                setLayoutAttributes(request, "Editar Usuario", 
+                    "Modifica los datos del usuario seleccionado");
+                request.setAttribute("pageContent", "../admin/editarUsuario.jsp");
+                forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
             } else {
                 request.setAttribute("error", "Error al registrar usuario: " + e.getMessage());
                 forward(request, response, "/WEB-INF/vistas/auth/registro.jsp");
             }
         }
+    }
+
+    // NUEVO MÉTODO: Configurar atributos del layout
+    private void setLayoutAttributes(HttpServletRequest request, String title, String subtitle) {
+        request.setAttribute("pageTitle", title);
+        request.setAttribute("pageSubtitle", subtitle);
     }
 
     private Usuario findByEmailOrDniExcludingId(String email, String dni, Long excludeId) {
