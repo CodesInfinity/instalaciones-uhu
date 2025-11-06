@@ -9,12 +9,15 @@
 
 <div class="panel-content">
     <div class="auth-card edit-card">
-        <a href="${pageContext.request.contextPath}/usuario/panel" class="back-link">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-            </svg>
-            Volver al panel
-        </a>
+        <%-- SOLO MOSTRAR ENLACE VOLVER AL PANEL PARA ADMINISTRADORES --%>
+        <c:if test="${sessionScope.usuario.rol == 0}">
+            <a href="${pageContext.request.contextPath}/usuario/panel" class="back-link">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Volver al panel
+            </a>
+        </c:if>
 
         <div class="auth-header">
             <h1>Editar Usuario</h1>
@@ -65,18 +68,26 @@
                 <small class="form-hint">Solo completa este campo si deseas cambiar la contraseña</small>
             </div>
 
-            <div class="form-group">
-                <label for="rol">Tipo de usuario</label>
-                <div class="input-wrapper">
-                    <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                    </svg>
-                    <select id="rol" name="rol" required>
-                        <option value="1" ${usuario.rol == 1 ? 'selected' : ''}>Estudiante / Usuario</option>
-                        <option value="2" ${usuario.rol == 2 ? 'selected' : ''}>Profesor / Personal</option>
-                    </select>
+            <%-- SOLO MOSTRAR SELECTOR DE ROL PARA ADMINISTRADORES --%>
+            <c:if test="${sessionScope.usuario.rol == 0}">
+                <div class="form-group">
+                    <label for="rol">Tipo de usuario</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        <select id="rol" name="rol" required>
+                            <option value="1" ${usuario.rol == 1 ? 'selected' : ''}>Estudiante / Usuario</option>
+                            <option value="2" ${usuario.rol == 2 ? 'selected' : ''}>Profesor / Personal</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
+            </c:if>
+
+            <%-- PARA USUARIOS NO ADMINISTRADORES, ENVIAR EL ROL ACTUAL COMO CAMPO OCULTO --%>
+            <c:if test="${sessionScope.usuario.rol != 0}">
+                <input type="hidden" name="rol" value="${usuario.rol}">
+            </c:if>
 
             <div class="form-actions">
                 <button type="submit" class="btn-auth-primary">
@@ -85,9 +96,22 @@
                     </svg>
                     Guardar cambios
                 </button>
-                <a href="${pageContext.request.contextPath}/usuario/panel" class="btn-auth-secondary">
-                    Cancelar
-                </a>
+                
+                <%-- BOTÓN CANCELAR CON DESTINO DIFERENTE SEGÚN ROL --%>
+                <c:choose>
+                    <c:when test="${sessionScope.usuario.rol == 0}">
+                        <%-- ADMINISTRADOR: va al panel --%>
+                        <a href="${pageContext.request.contextPath}/usuario/panel" class="btn-auth-secondary">
+                            Cancelar
+                        </a>
+                    </c:when>
+                    <c:otherwise>
+                        <%-- NO ADMINISTRADOR: va a la página principal --%>
+                        <a href="${pageContext.request.contextPath}/" class="btn-auth-secondary">
+                            Cancelar
+                        </a>
+                    </c:otherwise>
+                </c:choose>
             </div>
         </form>
     </div>

@@ -4,6 +4,7 @@
  */
 package app.modelos;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -28,6 +29,10 @@ public class Usuario implements Serializable {
     private String email;
     private String password;
     private int rol;
+    
+    //Estado de solicitud de profesor
+    @Column(name = "solicitud_profesor", nullable = true)
+    private String solicitudProfesor; // null=no solicitado, "PENDIENTE", "APROBADA", "RECHAZADA"
 
     public Usuario() {
     }
@@ -38,6 +43,7 @@ public class Usuario implements Serializable {
         this.email = email;
         this.password = password;
         this.rol = rol;
+        this.solicitudProfesor = null; // Por defecto no tiene solicitud
     }
 
     public Long getId() {
@@ -86,6 +92,20 @@ public class Usuario implements Serializable {
 
     public void setRol(int rol) {
         this.rol = rol;
+    }
+    
+    // NUEVOS GETTERS Y SETTERS
+    public String getSolicitudProfesor() {
+        return solicitudProfesor;
+    }
+
+    public void setSolicitudProfesor(String solicitudProfesor) {
+        this.solicitudProfesor = solicitudProfesor;
+    }
+    
+    // MÉTODO CONVENIENTE PARA VERIFICAR SI TIENE SOLICITUD PENDIENTE
+    public boolean tieneSolicitudPendiente() {
+        return "PENDIENTE".equals(solicitudProfesor);
     }
     
     @Override
