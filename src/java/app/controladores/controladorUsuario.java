@@ -56,7 +56,7 @@ public class controladorUsuario extends HttpServlet {
                 forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
             }
             case "/solicitudes" -> {
-                mostrarSolicitudesProfesor(request, response);
+                mostrarSolicitudesPersonal(request, response);
             }
             case "/editar" -> {
                 String idParam = request.getParameter("id");
@@ -318,7 +318,7 @@ public class controladorUsuario extends HttpServlet {
     }
 
     // MÉTODOS PARA GESTIÓN DE SOLICITUDES DE PROFESOR
-    private void mostrarSolicitudesProfesor(HttpServletRequest request, HttpServletResponse response)
+    private void mostrarSolicitudesPersonal(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         if (!esAdministrador(request)) {
@@ -332,9 +332,9 @@ public class controladorUsuario extends HttpServlet {
                 .getResultList();
 
         request.setAttribute("solicitudes", solicitudesPendientes);
-        setLayoutAttributes(request, "Solicitudes de Profesor",
-                "Gestiona las solicitudes de usuarios que quieren ser profesores");
-        request.setAttribute("pageContent", "../admin/solicitudesProfesor.jsp");
+        setLayoutAttributes(request, "Solicitudes de personal",
+                "Gestiona las solicitudes de usuarios que quieren ser personal de la UHU");
+        request.setAttribute("pageContent", "../admin/solicitudesPersonal.jsp");
         forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
     }
 
@@ -522,7 +522,7 @@ public class controladorUsuario extends HttpServlet {
                     response.sendRedirect(request.getContextPath() + "/usuario/panel");
                 } else {
                     Log.log(Level.INFO, "Redirigiendo usuario regular a inicio");
-                    response.sendRedirect(request.getContextPath() + "/");
+                    response.sendRedirect(request.getContextPath() + "/instalaciones");
                 }
             } else {
                 Log.log(Level.WARNING, "Login fallido para email: {0}", email);
