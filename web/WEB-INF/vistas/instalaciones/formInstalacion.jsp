@@ -1,7 +1,10 @@
 <%-- 
-    Document   : formInstalacion
-    Created on : 6 nov 2025, 20:17:47
-    Author     : agustinrodriguez
+    VISTA: FORMULARIO DE INSTALACIÓN
+    Formulario para crear o editar una instalación deportiva
+    - Campos: nombre, tipo, ubicación, descripción, imagen
+    - Validaciones en cliente y servidor
+    
+    @author agustinrodriguez
 --%>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
@@ -10,6 +13,7 @@
 <div class="instalaciones-container">
     <div class="form-container">
         <div class="form-instalacion">
+            <!-- ENCABEZADO DEL FORMULARIO -->
             <div class="form-header">
                 <h2 class="form-title">
                     <c:choose>
@@ -23,18 +27,21 @@
                 </h2>
             </div>
 
+            <!-- CUERPO DEL FORMULARIO -->
             <div class="form-body">
-                <%-- IMPORTANTE: Añadido enctype="multipart/form-data" --%>
+                <!-- FORMULARIO MULTIPART PARA ARCHIVOS -->
                 <form action="${pageContext.request.contextPath}/instalaciones/guardar" 
                       method="post" id="formInstalacion" class="instalacion-form"
                       enctype="multipart/form-data">
 
+                    <!-- Campo ID (oculto en edición) -->
                     <c:if test="${not empty instalacion}">
                         <input type="hidden" name="id" value="${instalacion.id}">
-                        <%-- Campo para guardar la URL de la imagen actual --%>
+                        <!-- Guardar URL actual de imagen por si no se sube una nueva -->
                         <input type="hidden" name="imagenUrlActual" value="${instalacion.imagenUrl}">
                     </c:if>
 
+                    <!-- CAMPO: NOMBRE -->
                     <div class="form-group">
                         <label for="nombre" class="form-label">
                             <i class="fas fa-signature"></i> Nombre de la Instalación *
@@ -52,7 +59,9 @@
                         </div>
                     </div>
 
+                    <!-- CAMPOS: TIPO Y UBICACIÓN (EN DOS COLUMNAS) -->
                     <div class="form-row">
+                        <!-- CAMPO: TIPO -->
                         <div class="form-group">
                             <label for="tipo" class="form-label">
                                 <i class="fas fa-tag"></i> Tipo de Instalación *
@@ -83,6 +92,7 @@
                             </select>
                         </div>
 
+                        <!-- CAMPO: UBICACIÓN -->
                         <div class="form-group">
                             <label for="ubicacion" class="form-label">
                                 <i class="fas fa-map-marker-alt"></i> Ubicación *
@@ -101,6 +111,7 @@
                         </div>
                     </div>
 
+                    <!-- CAMPO: DESCRIPCIÓN -->
                     <div class="form-group">
                         <label for="descripcion" class="form-label">
                             <i class="fas fa-align-left"></i> Descripción
@@ -118,11 +129,13 @@
                         </div>
                     </div>
 
+                    <!-- CAMPO: IMAGEN -->
                     <div class="form-group form-group-image">
                         <label class="form-label">
                             <i class="fas fa-image"></i> Imagen de la Instalación
                         </label>
                         <div class="image-preview" id="imagePreview" onclick="document.getElementById('imagenInput').click()">
+                            <!-- Mostrar preview si existe imagen -->
                             <c:choose>
                                 <c:when test="${not empty instalacion and not empty instalacion.imagenUrl}">
                                     <img src="${pageContext.request.contextPath}${instalacion.imagenUrl}" 
@@ -130,6 +143,7 @@
                                          id="previewImage">
                                 </c:when>
                                 <c:otherwise>
+                                    <!-- Placeholder si no hay imagen -->
                                     <div class="image-preview-placeholder">
                                         <i class="fas fa-camera"></i>
                                         <span>Haz clic para seleccionar una imagen</span>
@@ -137,24 +151,27 @@
                                 </c:otherwise>
                             </c:choose>
                         </div>
+                        <!-- Input file oculto -->
                         <input type="file" 
                                class="file-input" 
                                id="imagenInput" 
                                name="imagen"
                                accept="image/*"
                                onchange="previewImage(this)">
-                        <%-- EL INPUT HIDDEN 'imagenUrl' HA SIDO ELIMINADO --%>
                         <div class="form-help">
                             <i class="fas fa-info-circle"></i> 
                             Formatos recomendados: JPG, PNG. Tamaño máximo: 2MB.
                         </div>
                     </div>
 
+                    <!-- BOTONES DE ACCIÓN -->
                     <div class="form-actions">
+                        <!-- Botón volver -->
                         <a href="${pageContext.request.contextPath}/instalaciones/panel" 
                            class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Volver al Panel
                         </a>
+                        <!-- Botón enviar -->
                         <button type="submit" class="btn btn-primary">
                             <c:choose>
                                 <c:when test="${not empty instalacion}">
@@ -172,69 +189,5 @@
     </div>
 </div>
 
-<script>
-    // Contador de caracteres para la descripción
-    document.getElementById('descripcion').addEventListener('input', function () {
-        const contador = document.getElementById('contadorCaracteres');
-        contador.textContent = this.value.length + '/500';
-
-        if (this.value.length > 500) {
-            contador.classList.add('text-danger');
-        } else {
-            contador.classList.remove('text-danger');
-        }
-    });
-
-    // Inicializar contador
-    document.addEventListener('DOMContentLoaded', function () {
-        const descripcion = document.getElementById('descripcion');
-        const contador = document.getElementById('contadorCaracteres');
-        contador.textContent = descripcion.value.length + '/500';
-    });
-
-    // Validación del formulario
-    document.getElementById('formInstalacion').addEventListener('submit', function (e) {
-        const nombre = document.getElementById('nombre').value.trim();
-        const tipo = document.getElementById('tipo').value;
-        const ubicacion = document.getElementById('ubicacion').value.trim();
-
-        if (!nombre || !tipo || !ubicacion) {
-            e.preventDefault();
-            alert('Por favor, complete todos los campos obligatorios (*)');
-            return false;
-        }
-
-        if (document.getElementById('descripcion').value.length > 500) {
-            e.preventDefault();
-            alert('La descripción no puede exceder los 500 caracteres');
-            return false;
-        }
-    });
-
-    // Preview de imagen (Script actualizado)
-    function previewImage(input) {
-        const preview = document.getElementById('imagePreview');
-        
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-
-            reader.onload = function (e) {
-                // Crear elemento img si no existe
-                let img = preview.querySelector('img');
-                if (!img) {
-                    img = document.createElement('img');
-                    img.id = 'previewImage';
-                    preview.innerHTML = '';
-                    preview.appendChild(img);
-                }
-
-                img.src = e.target.result;
-                img.alt = 'Vista previa';
-
-                // Ya no se actualiza ningún input hidden
-            };
-
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-</script>
+<!-- SCRIPT DEL FORMULARIO (ALMACENADO EN ARCHIVO EXTERNO) -->
+<script src="${pageContext.request.contextPath}/scripts/form-instalacion.js"></script>

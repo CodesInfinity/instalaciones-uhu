@@ -1,51 +1,70 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package app.modelos;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import java.io.Serializable;
 
 /**
- *
- * @author agusm
+ * MODELO: USUARIO
+ * 
+ * Representa un usuario del sistema
+ * Campos: dni, nombre, email, contraseña, rol, solicitud profesor
+ * Roles: 0=Admin, 1=Estudiante, 2=Profesor
+ * 
+ * @author agustinrodriguez
+ * @version 2.0 - Refactorizado y comentado
  */
 @Entity
-@Table(name="usuarios")
+@Table(name = "usuarios")
 public class Usuario implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    
+    // Identificador único autoincrementable
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    
+    // DNI del usuario (documento nacional de identidad)
     private String dni;
+    
+    // Nombre completo del usuario
     private String nombre;
+    
+    // Email único del usuario
     private String email;
+    
+    // Contraseña encriptada
     private String password;
+    
+    // Rol del usuario: 0=Administrador, 1=Estudiante, 2=Profesor
     private int rol;
     
-    //Estado de solicitud de profesor
+    // Estado de solicitud de profesor: null, "PENDIENTE", "APROBADA", "RECHAZADA"
     @Column(name = "solicitud_profesor", nullable = true)
-    private String solicitudProfesor; // null=no solicitado, "PENDIENTE", "APROBADA", "RECHAZADA"
+    private String solicitudProfesor;
 
+    // ===== CONSTRUCTORES =====
+    
+    /**
+     * Constructor vacío (requerido por JPA)
+     */
     public Usuario() {
     }
 
+    /**
+     * Constructor con parámetros principales
+     */
     public Usuario(String dni, String nombre, String email, String password, int rol) {
         this.dni = dni;
         this.nombre = nombre;
         this.email = email;
         this.password = password;
         this.rol = rol;
-        this.solicitudProfesor = null; // Por defecto no tiene solicitud
+        this.solicitudProfesor = null;
     }
 
+    // ===== GETTERS Y SETTERS =====
+    
     public Long getId() {
         return id;
     }
@@ -54,7 +73,7 @@ public class Usuario implements Serializable {
         this.id = id;
     }
 
-     public String getDni() {
+    public String getDni() {
         return dni;
     }
 
@@ -94,7 +113,6 @@ public class Usuario implements Serializable {
         this.rol = rol;
     }
     
-    // NUEVOS GETTERS Y SETTERS
     public String getSolicitudProfesor() {
         return solicitudProfesor;
     }
@@ -103,10 +121,16 @@ public class Usuario implements Serializable {
         this.solicitudProfesor = solicitudProfesor;
     }
     
-    // MÉTODO CONVENIENTE PARA VERIFICAR SI TIENE SOLICITUD PENDIENTE
+    // ===== MÉTODOS DE UTILIDAD =====
+    
+    /**
+     * Método conveniente para verificar si el usuario tiene solicitud de profesor pendiente
+     */
     public boolean tieneSolicitudPendiente() {
         return "PENDIENTE".equals(solicitudProfesor);
     }
+    
+    // ===== MÉTODOS EQUALS Y HASHCODE =====
     
     @Override
     public int hashCode() {
@@ -117,7 +141,6 @@ public class Usuario implements Serializable {
 
     @Override
     public boolean equals(Object object) {
-        // TODO: Warning - this method won't work in the case the id fields are not set
         if (!(object instanceof Usuario)) {
             return false;
         }
@@ -128,9 +151,10 @@ public class Usuario implements Serializable {
         return true;
     }
 
+    // ===== MÉTODO TOSTRING =====
+    
     @Override
     public String toString() {
         return "app.modelo.Usuario[ id=" + id + " ]";
     }
-    
 }

@@ -1,18 +1,24 @@
 <%-- 
-    Document   : listaInstalaciones
-    Created on : 6 nov 2025, 20:13:54
-    Author     : agustinrodriguez
+    VISTA: LISTA DE INSTALACIONES
+    Muestra todas las instalaciones deportivas disponibles
+    - Lista pública para todos los usuarios
+    - Opciones de administración para admins
+    
+    @author agustinrodriguez
 --%>
+
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 
 <div class="instalaciones-container">
+    <!-- ENCABEZADO CON TÍTULO Y BOTÓN DE NUEVA INSTALACIÓN -->
     <div class="instalaciones-header">
         <div class="header-content">
             <span class="badge">Instalaciones Deportivas</span>
             <h1 class="page-title">Nuestras Instalaciones</h1>
             <p class="page-subtitle">Descubre todos nuestros espacios deportivos disponibles</p>
         </div>
+        <!-- Botón visible solo para administradores -->
         <c:if test="${sessionScope.usuario.rol == 0}">
             <a href="${pageContext.request.contextPath}/instalaciones/nueva" class="btn btn-primary">
                 <i class="fas fa-plus-circle"></i> Nueva Instalación
@@ -20,11 +26,16 @@
         </c:if>
     </div>
 
+    <!-- GRID DE INSTALACIONES -->
     <div class="instalaciones-grid">
+        <!-- Determina qué mostrar según si existen instalaciones -->
         <c:choose>
             <c:when test="${not empty instalaciones}">
+                <!-- Mostrar tarjetas si hay instalaciones -->
                 <c:forEach var="instalacion" items="${instalaciones}">
                     <div class="instalacion-card">
+                        <!-- IMAGEN DE PORTADA -->
+                        <!-- Determina si la instalación tiene imagen personalizada -->
                         <c:choose>
                             <c:when test="${not empty instalacion.imagenUrl}">
                                 <div class="card-header-with-image">
@@ -35,6 +46,7 @@
                                     <div class="card-header-overlay">
                                         <h3 class="card-title-overlay">${instalacion.nombre}</h3>
                                         <span class="badge badge-overlay">
+                                            <!-- Badge con icono según tipo de instalación -->
                                             <c:choose>
                                                 <c:when test="${instalacion.tipo == 'Fútbol'}">
                                                     <i class="fas fa-futbol"></i>
@@ -70,6 +82,7 @@
                                 </div>
                             </c:when>
                             <c:otherwise>
+                                <!-- Si no tiene imagen, mostrar fondo de color con icono -->
                                 <div class="card-header-default">
                                     <div class="default-icon">
                                         <c:choose>
@@ -111,28 +124,38 @@
                                 </div>
                             </c:otherwise>
                         </c:choose>
+                        
+                        <!-- CONTENIDO DE LA TARJETA -->
                         <div class="card-body">
+                            <!-- Ubicación -->
                             <div class="info-item">
                                 <i class="fas fa-map-marker-alt text-danger"></i>
                                 <span>${instalacion.ubicacion}</span>
                             </div>
+                            <!-- Descripción -->
                             <p class="card-description">
                                 <i class="fas fa-align-left text-muted"></i>
                                 ${not empty instalacion.descripcion ? instalacion.descripcion : 'Sin descripción disponible.'}
                             </p>
                         </div>
+                        
+                        <!-- ACCIONES (VER DETALLES Y ADMIN) -->
                         <div class="card-footer">
                             <div class="card-actions">
+                                <!-- Botón ver detalles (público) -->
                                 <a href="${pageContext.request.contextPath}/instalaciones/detalle?id=${instalacion.id}" 
                                    class="btn btn-outline">
                                     <i class="fas fa-eye"></i> Ver Detalles
                                 </a>
+                                <!-- Botones de administración (solo para admins) -->
                                 <c:if test="${sessionScope.usuario.rol == 0}">
                                     <div class="admin-actions">
+                                        <!-- Botón editar -->
                                         <a href="${pageContext.request.contextPath}/instalaciones/editar?id=${instalacion.id}" 
                                            class="btn-icon btn-warning" title="Editar instalación">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        <!-- Botón eliminar (con confirmación) -->
                                         <a href="${pageContext.request.contextPath}/instalaciones/borrar?id=${instalacion.id}" 
                                            class="btn-icon btn-danger" 
                                            title="Eliminar instalación"
@@ -147,12 +170,14 @@
                 </c:forEach>
             </c:when>
             <c:otherwise>
+                <!-- Mostrar estado vacío si no hay instalaciones -->
                 <div class="empty-state">
                     <div class="empty-icon">
                         <i class="fas fa-building"></i>
                     </div>
                     <h3>No hay instalaciones disponibles</h3>
                     <p>Próximamente agregaremos nuevas instalaciones deportivas.</p>
+                    <!-- Botón para crear primera instalación (solo admins) -->
                     <c:if test="${sessionScope.usuario.rol == 0}">
                         <a href="${pageContext.request.contextPath}/instalaciones/nueva" class="btn btn-primary">
                             <i class="fas fa-plus-circle"></i> Agregar Primera Instalación
