@@ -6,6 +6,8 @@
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
+<%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
 <div class="instalaciones-container">
     <div class="detalle-container">
@@ -157,6 +159,41 @@
                                 <p>Lunes a Viernes: 7:00 - 22:00<br>Sábados: 8:00 - 20:00</p>
                             </div>
                         </div>
+                        
+                        <%-- Added simple link to availability view instead of embedded calendar --%>
+                        <div class="detalle-info-item full-width">
+                            <div class="info-icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="info-content">
+                                <h4>Consultar Horarios Disponibles</h4>
+                                <p class="subtitle-disponibilidad">
+                                    Consulta los horarios disponibles para reservar esta instalación
+                                </p>
+                                
+                                <c:if test="${not empty sessionScope.usuario}">
+                                    <div class="boton-disponibilidad-container">
+                                        <a href="${pageContext.request.contextPath}/reservas/disponibilidad?espacioId=${instalacion.id}" 
+                                           class="btn btn-primary btn-large">
+                                            <i class="fas fa-calendar-check"></i> Ver Disponibilidad
+                                        </a>
+                                        <a href="${pageContext.request.contextPath}/reservas/nueva?espacioId=${instalacion.id}" 
+                                           class="btn btn-outline btn-large">
+                                            <i class="fas fa-calendar-plus"></i> Hacer Reserva
+                                        </a>
+                                    </div>
+                                </c:if>
+                                
+                                <c:if test="${empty sessionScope.usuario}">
+                                    <p class="info-login">
+                                        <i class="fas fa-info-circle"></i>
+                                        Debes <a href="${pageContext.request.contextPath}/usuario/login">iniciar sesión</a> 
+                                        para consultar disponibilidad y realizar reservas
+                                    </p>
+                                </c:if>
+                            </div>
+                        </div>
+                        <%-- FIN DE LA SECCIÓN DE DISPONIBILIDAD DE RESERVAS --%>
                     </div>
                     
                     <div class="detalle-sidebar">
