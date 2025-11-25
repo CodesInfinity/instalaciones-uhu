@@ -1,7 +1,10 @@
 <%-- 
-    Document   : editUsuario
+    Document   : editarUsuario.jsp
     Created on : 26 oct 2025, 0:39:41
     Author     : agustinrodriguez
+    Description: FORMULARIO DE EDICIÓN DE PERFIL
+                 Vista dual utilizada tanto por usuarios estándar (perfil propio)
+                 como por administradores (gestión de usuarios).
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
@@ -9,7 +12,8 @@
 
 <div class="panel-content">
     <div class="auth-card edit-card">
-        <%-- SOLO MOSTRAR ENLACE VOLVER AL PANEL PARA ADMINISTRADORES --%>
+        
+        <%-- Solo el administrador necesita un botón explícito para volver al panel de gestión --%>
         <c:if test="${sessionScope.usuario.rol == 0}">
             <a href="${pageContext.request.contextPath}/usuario/panel" class="back-link">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,6 +29,8 @@
         </div>
 
         <form class="auth-form" action="${pageContext.request.contextPath}/usuario/save" method="post">
+            
+            <%-- CAMPO OCULTO: ID del usuario a editar (Esencial para que el backend sepa que es un UPDATE) --%>
             <input type="hidden" name="id" value="${usuario.id}"/>
 
             <div class="form-group">
@@ -68,7 +74,6 @@
                 <small class="form-hint">Solo completa este campo si deseas cambiar la contraseña</small>
             </div>
 
-            <%-- SOLO MOSTRAR SELECTOR DE ROL PARA ADMINISTRADORES --%>
             <c:if test="${sessionScope.usuario.rol == 0}">
                 <div class="form-group">
                     <label for="rol">Tipo de usuario</label>
@@ -84,7 +89,7 @@
                 </div>
             </c:if>
 
-            <%-- PARA USUARIOS NO ADMINISTRADORES, ENVIAR EL ROL ACTUAL COMO CAMPO OCULTO --%>
+            <%-- PROTECCIÓN DE ROL: Para usuarios normales, el rol se mantiene igual --%>
             <c:if test="${sessionScope.usuario.rol != 0}">
                 <input type="hidden" name="rol" value="${usuario.rol}">
             </c:if>
@@ -97,17 +102,16 @@
                     Guardar cambios
                 </button>
                 
-                <%-- BOTÓN CANCELAR CON DESTINO DIFERENTE SEGÚN ROL --%>
                 <c:choose>
+                    <%-- Admin: Vuelve a la lista de usuarios --%>
                     <c:when test="${sessionScope.usuario.rol == 0}">
-                        <%-- ADMINISTRADOR: va al panel --%>
                         <a href="${pageContext.request.contextPath}/usuario/panel" class="btn-auth-secondary">
                             Cancelar
                         </a>
                     </c:when>
+                    <%-- Usuario Normal: Vuelve a la página anterior --%>
                     <c:otherwise>
-                        <%-- NO ADMINISTRADOR: va a la página principal --%>
-                        <a href="${pageContext.request.contextPath}/" class="btn-auth-secondary">
+                        <a href="javascript:history.back()" class="btn-auth-secondary">
                             Cancelar
                         </a>
                     </c:otherwise>

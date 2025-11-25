@@ -24,52 +24,81 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 
 /**
- * CONTROLADOR DE USUARIOS
- * 
- * Gestiona todas las operaciones relacionadas con usuarios:
- * - Registro de nuevos usuarios
- * - Autenticación (login)
- * - Gestión de perfiles de usuario
- * - Panel administrativo de usuarios
- * - Solicitudes de promotoría/profesor
- * - Cierre de sesión
- * 
- * @author agustinrodriguez
- * @version 2.1 - Refactorizado con comprobaciones de admin en el enrutador
+ * CONTROLADOR DE GESTIÓN DE USUARIOS
+ * * <p>Este Servlet actúa como el controlador central para todas las operaciones relacionadas con 
+ * la entidad {@link Usuario}. Implementa el patrón MVC gestionando las peticiones HTTP, 
+ * interactuando con la capa de persistencia y despachando a las vistas JSP correspondientes.</p>
+ * * <p><strong>Funcionalidades principales:</strong></p>
+ * <ul>
+ * <li>Autenticación y autorización (Login/Logout).</li>
+ * <li>CRUD completo de usuarios (Crear, Leer, Actualizar, Borrar).</li>
+ * <li>Gestión de roles y permisos (Admin vs Usuario estándar).</li>
+ * <li>Flujo de aprobación para solicitudes de rol 'Profesor'.</li>
+ * <li>Endpoints AJAX para validaciones asíncronas (Email/DNI).</li>
+ * </ul>
+ * * @author agustinrodriguez
+ * @version 2.1
+ * @see app.modelos.Usuario
  */
 @WebServlet(name = "controladorUsuario", urlPatterns = {"/usuario/*"})
 public class controladorUsuario extends HttpServlet {
 
-    // ===== INYECCIÓN DE DEPENDENCIAS =====
-    @PersistenceContext(unitName = "instalacionesPU")
-    private EntityManager em;
-    
-    @Resource
-    private UserTransaction utx;
-    
-    // Logger para rastrear eventos importantes
-    private static final Logger LOG = Logger.getLogger(controladorUsuario.class.getName());
+    // ==========================================
+    // INYECCIÓN DE DEPENDENCIAS Y RECURSOS
+    // ==========================================
 
     /**
-     * MÉTODO: doGet
-     * Maneja las peticiones GET del controlador
+     * Contexto de persistencia para operaciones con la base de datos (JPA).
+     */
+    @PersistenceContext(unitName = "instalacionesPU")
+    private EntityManager em;
+
+    /**
+     * Gestor de transacciones (JTA) para controlar commit/rollback manualmente
+     * cuando se requiere lógica transaccional compleja.
+     */
+    @Resource
+    private UserTransaction utx;
+
+    /**
+     * Logger para registro de eventos, auditoría y depuración.
+     */
+    private static final Logger LOG = Logger.getLogger(controladorUsuario.class.getName());
+
+    // ==========================================
+    // GESTIÓN DE PETICIONES HTTP (ROUTING)
+    // ==========================================
+
+    /**
+     * Maneja las peticiones GET. Actúa como enrutador principal para la navegación
+     * y visualización de datos.
+     * * @param request La solicitud HTTP.
+     * @param response La respuesta HTTP.
+     * @throws ServletException Si ocurre un error en el servlet.
+     * @throws IOException Si ocurre un error de entrada/salida.
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        // Obtener la ruta relativa (ej: /panel, /login)
         String path = request.getPathInfo() != null ? request.getPathInfo() : "/login";
 
+        // Detección de peticiones AJAX
+        String ajax = request.getParameter("ajax");
+        boolean esAjax = "true".equals(ajax);
+
         switch (path) {
-            // RUTA: /usuario/panel
-            // Panel administrativo de usuarios (solo administradores)
+            // -----------------------------------------------------------------
+            // RUTA: /usuario/panel (ADMINISTRACIÓN)
+            // Lista todos los usuarios. Requiere rol de Administrador.
+            // -----------------------------------------------------------------
             case "/panel" -> {
-                // **VERIFICACIÓN DE ADMIN**
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos para acceder a esta sección");
                     return;
                 }
-                
+
                 List<Usuario> usuarios = obtenerUsuarios();
                 request.setAttribute("usuarios", usuarios);
                 setLayoutAttributes(request, "Panel de Usuarios",
@@ -77,54 +106,71 @@ public class controladorUsuario extends HttpServlet {
                 request.setAttribute("pageContent", "../admin/panelUsuarios.jsp");
                 forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
             }
-            
-            // RUTA: /usuario/solicitudes
-            // Ver solicitudes de profesor/personal
+
+            // -----------------------------------------------------------------
+            // RUTA: /usuario/solicitudes (ADMINISTRACIÓN)
+            // Bandeja de entrada para aprobaciones de rol profesor.
+            // -----------------------------------------------------------------
             case "/solicitudes" -> {
-                // **VERIFICACIÓN DE ADMIN**
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos para acceder a esta sección");
                     return;
                 }
                 mostrarSolicitudesPersonal(request, response);
             }
-            
-            // RUTA: /usuario/editar?id=X
-            // Página para editar datos de usuario
+
+            // -----------------------------------------------------------------
+            // RUTA: /usuario/editar (EDICIÓN DE PERFIL)
+            // Carga el formulario con datos existentes.
+            // Permite edición propia o edición por administrador.
+            // -----------------------------------------------------------------
             case "/editar" -> {
                 String idParam = request.getParameter("id");
+                Long usuarioId;
+
+                // Lógica de decisión: ¿Edito a otro o a mí mismo?
                 if (idParam != null) {
-                    // Esta ruta permite admin O el propio usuario (lógica correcta)
-                    if (!tienePermisoParaEditar(request, Long.parseLong(idParam))) {
+                    // Intento de editar a otro usuario
+                    usuarioId = Long.parseLong(idParam);
+                    if (!tienePermisoParaEditar(request, usuarioId)) {
                         forwardError(request, response, "No tiene permisos para editar este usuario.");
                         return;
                     }
-
-                    Usuario usuario = em.find(Usuario.class, Long.parseLong(idParam));
-                    if (usuario == null) {
-                        forwardError(request, response, "Usuario no encontrado.");
+                } else {
+                    // Edición del perfil propio (Sesión activa)
+                    HttpSession session = request.getSession();
+                    Usuario usuarioSesion = (Usuario) session.getAttribute("usuario");
+                    if (usuarioSesion == null) {
+                        forwardError(request, response, "No hay usuario en sesión.");
                         return;
                     }
-
-                    request.setAttribute("usuario", usuario);
-                    setLayoutAttributes(request, "Editar Usuario",
-                            "Modifica los datos del usuario seleccionado");
-                    request.setAttribute("pageContent", "../admin/editarUsuario.jsp");
-                    forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
-                } else {
-                    forwardError(request, response, "ID de usuario no proporcionado.");
+                    usuarioId = usuarioSesion.getId();
                 }
+
+                // Recuperación de la entidad
+                Usuario usuario = em.find(Usuario.class, usuarioId);
+                if (usuario == null) {
+                    forwardError(request, response, "Usuario no encontrado.");
+                    return;
+                }
+
+                request.setAttribute("usuario", usuario);
+                setLayoutAttributes(request, "Editar Usuario",
+                        "Modifica los datos del usuario seleccionado");
+                request.setAttribute("pageContent", "../admin/editarUsuario.jsp");
+                forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
             }
-            
-            // RUTA: /usuario/borrar?id=X
-            // Eliminar usuario del sistema
+
+            // -----------------------------------------------------------------
+            // RUTA: /usuario/borrar (ELIMINACIÓN)
+            // Requiere rol de Administrador.
+            // -----------------------------------------------------------------
             case "/borrar" -> {
-                // **VERIFICACIÓN DE ADMIN**
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos para eliminar usuarios.");
                     return;
                 }
-                
+
                 String idParam = request.getParameter("id");
                 if (idParam != null) {
                     borrarUsuario(Long.parseLong(idParam));
@@ -133,36 +179,53 @@ public class controladorUsuario extends HttpServlet {
                     forwardError(request, response, "ID de usuario no proporcionado.");
                 }
             }
-            
-            // RUTA: /usuario/registro
-            // Mostrar formulario de registro
+
+            // -----------------------------------------------------------------
+            // RUTAS PÚBLICAS Y DE AUTENTICACIÓN
+            // -----------------------------------------------------------------
             case "/registro" ->
                 forward(request, response, "/WEB-INF/vistas/auth/registro.jsp");
-    
-            // RUTA: /usuario/login
-            // Mostrar formulario de login
+
             case "/login" ->
                 forward(request, response, "/WEB-INF/vistas/auth/login.jsp");
-            
-            // RUTA: /usuario/logout
-            // Cerrar sesión del usuario
+
             case "/logout" -> {
                 HttpSession session = request.getSession(false);
                 if (session != null) {
-                    session.invalidate();
+                    session.invalidate(); // Destruye la sesión del servidor
                 }
                 response.sendRedirect(request.getContextPath() + "/");
             }
-            
-            // Ruta no reconocida
+
+            // -----------------------------------------------------------------
+            // RUTAS AJAX (VALIDACIONES API)
+            // Devuelven JSON puro, no vistas JSP.
+            // -----------------------------------------------------------------
+            case "/validar-email" -> {
+                if (!esAjax) {
+                    forwardError(request, response, "Método no permitido");
+                    return;
+                }
+                validarEmailAjax(request, response);
+            }
+
+            case "/validar-dni" -> {
+                if (!esAjax) {
+                    forwardError(request, response, "Método no permitido");
+                    return;
+                }
+                validarDniAjax(request, response);
+            }
+
             default ->
                 forwardError(request, response, "Página no encontrada.");
         }
     }
 
     /**
-     * MÉTODO: doPost
-     * Maneja las peticiones POST del controlador
+     * Maneja las peticiones POST. Procesa formularios y cambios de estado en la base de datos.
+     * * @param request La solicitud HTTP.
+     * @param response La respuesta HTTP.
      */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -171,55 +234,61 @@ public class controladorUsuario extends HttpServlet {
         String accion = request.getPathInfo();
 
         switch (accion) {
-            // RUTA: /usuario/save
-            // Procesar creación/edición de usuario
-            // La lógica de permisos está en procesarGuardarUsuario (admin o self)
+            // Procesa tanto el registro nuevo como la edición de perfil
             case "/save" -> {
                 procesarGuardarUsuario(request, response);
             }
-            
-            // RUTA: /usuario/login
-            // Procesar autenticación
+
+            // Procesa las credenciales de acceso
             case "/login" -> {
                 procesarLogin(request, response);
             }
-            
-            // RUTA: /usuario/aprobarSolicitud
-            // Aprobar solicitud de profesor
+
+            // Gestión de solicitudes de rol (Solo Admin)
             case "/aprobarSolicitud" -> {
-                // **VERIFICACIÓN DE ADMIN**
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos");
                     return;
                 }
                 procesarAprobarSolicitud(request, response);
             }
-            
-            // RUTA: /usuario/rechazarSolicitud
-            // Rechazar solicitud de profesor
+
             case "/rechazarSolicitud" -> {
-                // **VERIFICACIÓN DE ADMIN**
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos");
                     return;
                 }
                 procesarRechazarSolicitud(request, response);
             }
-            
+
             default ->
                 forwardError(request, response, "Acción no válida");
         }
     }
 
+    // ==========================================
+    // LÓGICA DE NEGOCIO PRINCIPAL
+    // ==========================================
+
+    
+
     /**
-     * MÉTODO PRIVADO: procesarGuardarUsuario
-     * Procesa la creación o edición de un usuario
-     * Incluye: validación, verificación de duplicados, encriptación de contraseña
+     * Orquesta el proceso de creación o actualización de un usuario.
+     * <p>Pasos que realiza:</p>
+     * <ol>
+     * <li>Validación de parámetros obligatorios.</li>
+     * <li>Normalización de datos (trim, lowercase).</li>
+     * <li>Verificación de permisos de seguridad (¿Quién intenta guardar?).</li>
+     * <li>Verificación de duplicados (Email/DNI únicos).</li>
+     * <li>Hashing de contraseña (si aplica).</li>
+     * <li>Persistencia en base de datos.</li>
+     * <li>Redirección contextual post-guardado.</li>
+     * </ol>
      */
     private void procesarGuardarUsuario(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // Obtener parámetros del formulario
+        // 1. Extracción de parámetros
         String idParam = request.getParameter("id");
         String dni = request.getParameter("dni");
         String nombre = request.getParameter("nombre");
@@ -229,28 +298,27 @@ public class controladorUsuario extends HttpServlet {
         String solicitarProfesor = request.getParameter("solicitarProfesor");
 
         try {
-            // Validar campos requeridos
+            // 2. Validaciones básicas
             if (dni == null || nombre == null || email == null
                     || dni.trim().isEmpty() || nombre.trim().isEmpty() || email.trim().isEmpty()) {
                 forwardError(request, response, "Todos los campos obligatorios deben ser completados");
                 return;
             }
 
-            // Normalizar datos
+            // 3. Normalización
             String emailNormalizado = email.trim().toLowerCase();
             String dniNormalizado = dni.trim();
             String nombreNormalizado = nombre.trim();
 
-            // Validar formato de email
             if (!emailNormalizado.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
                 forwardError(request, response, "El formato del email no es válido");
                 return;
             }
 
-            // Determinar rol del usuario
+            // 4. Determinación del Rol
             int rol;
             if (rolParam == null || rolParam.trim().isEmpty()) {
-                rol = 1; // Rol por defecto: Estudiante
+                rol = 1; // Default: Estudiante
             } else {
                 try {
                     rol = Integer.parseInt(rolParam);
@@ -259,9 +327,9 @@ public class controladorUsuario extends HttpServlet {
                     return;
                 }
             }
-            
-            // **INICIO LÓGICA DE PERMISOS**
-            // Si estamos editando (idParam existe), verificar permisos
+
+            // 5. Verificación de Seguridad (Autorización)
+            // Si es edición, ¿tiene permiso el usuario actual?
             if (idParam != null && !idParam.trim().isEmpty()) {
                 Long id = Long.parseLong(idParam);
                 if (!tienePermisoParaEditar(request, id)) {
@@ -269,13 +337,13 @@ public class controladorUsuario extends HttpServlet {
                     return;
                 }
             }
-            // Si es registro (idParam es null), no se requiere permiso especial
-            // **FIN LÓGICA DE PERMISOS**
 
             Usuario usuario;
 
+            // -------------------------------------------------------
+            // RAMA: EDICIÓN (UPDATE)
+            // -------------------------------------------------------
             if (idParam != null && !idParam.trim().isEmpty()) {
-                // MODO EDICIÓN
                 Long id = Long.parseLong(idParam);
                 usuario = em.find(Usuario.class, id);
 
@@ -284,7 +352,7 @@ public class controladorUsuario extends HttpServlet {
                     return;
                 }
 
-                // Verificar si el email o DNI ya existen en otros usuarios
+                // Check Duplicados (excluyendo el propio usuario)
                 Usuario usuarioExistente = findByEmailOrDniExcludingId(emailNormalizado, dniNormalizado, id);
                 if (usuarioExistente != null) {
                     if (usuarioExistente.getEmail().equalsIgnoreCase(emailNormalizado)) {
@@ -297,17 +365,17 @@ public class controladorUsuario extends HttpServlet {
                     }
                 }
 
-                // Actualizar datos
+                // Actualización de campos
                 usuario.setDni(dniNormalizado);
                 usuario.setNombre(nombreNormalizado);
                 usuario.setEmail(emailNormalizado);
-                
-                // Solo un admin puede cambiar el rol
-                if(esAdministrador(request)) {
+
+                // Seguridad: Solo admin puede elevar privilegios vía POST
+                if (esAdministrador(request)) {
                     usuario.setRol(rol);
                 }
 
-                // Solo actualizar contraseña si se proporciona una nueva
+                // Seguridad: Solo hashear si la contraseña cambió
                 if (password != null && !password.trim().isEmpty()) {
                     if (password.length() < 6) {
                         forwardError(request, response, "La contraseña debe tener al menos 6 caracteres");
@@ -317,8 +385,11 @@ public class controladorUsuario extends HttpServlet {
                     usuario.setPassword(hashedPassword);
                 }
 
-            } else {
-                // MODO REGISTRO
+            } 
+            // -------------------------------------------------------
+            // RAMA: REGISTRO NUEVO (CREATE)
+            // -------------------------------------------------------
+            else {
                 if (password == null || password.trim().isEmpty()) {
                     forwardError(request, response, "La contraseña es requerida para el registro");
                     return;
@@ -329,7 +400,7 @@ public class controladorUsuario extends HttpServlet {
                     return;
                 }
 
-                // Verificar si el usuario ya existe
+                // Check Duplicados Global
                 Usuario usuarioExistente = findByEmailOrDni(emailNormalizado, dniNormalizado);
                 if (usuarioExistente != null) {
                     if (usuarioExistente.getEmail().equalsIgnoreCase(emailNormalizado)) {
@@ -342,13 +413,11 @@ public class controladorUsuario extends HttpServlet {
                     }
                 }
 
-                // Crear nuevo usuario
                 String hashedPassword = hashPassword(password);
-                
-                // Si no es un admin, el rol es 1 (Estudiante)
-                // Si es un admin creando un usuario, se respeta el rol del formulario
+
+                // Seguridad: Si no es admin, forzar rol estudiante (1)
                 int rolFinal = esAdministrador(request) ? rol : 1;
-                
+
                 usuario = new Usuario(
                         dniNormalizado,
                         nombreNormalizado,
@@ -357,21 +426,21 @@ public class controladorUsuario extends HttpServlet {
                         rolFinal
                 );
 
-                // Procesar solicitud de profesor si se envió
+                // Gestionar checkbox de solicitud de rol
                 if ("true".equals(solicitarProfesor)) {
                     usuario.setSolicitudProfesor("PENDIENTE");
                 }
             }
 
-            // Guardar usuario en la base de datos
+            // 6. Persistencia
             save(usuario);
 
-            // Redirigir según el contexto
+            // 7. Gestión de Sesión y Redirección
             HttpSession session = request.getSession(false);
             if (session != null && session.getAttribute("usuario") != null) {
                 Usuario usuarioLogueado = (Usuario) session.getAttribute("usuario");
 
-                // Si es edición del propio perfil, actualizar sesión
+                // Si edité mi propio perfil, actualizo el objeto en sesión para reflejar cambios inmediatos
                 if (idParam != null && !idParam.trim().isEmpty()) {
                     Long idEditado = Long.parseLong(idParam);
                     if (usuarioLogueado.getId().equals(idEditado)) {
@@ -379,14 +448,14 @@ public class controladorUsuario extends HttpServlet {
                     }
                 }
 
-                // Redirigir según rol
+                // Navegación post-guardado
                 if (usuarioLogueado.getRol() == 0) {
                     response.sendRedirect(request.getContextPath() + "/usuario/panel");
                 } else {
                     response.sendRedirect(request.getContextPath() + "/");
                 }
             } else {
-                // Usuario no logueado (registro): mostrar login
+                // Caso Registro Público: Enviar al login
                 request.setAttribute("success", "Usuario registrado correctamente. Puede iniciar sesión.");
                 forward(request, response, "/WEB-INF/vistas/auth/login.jsp");
             }
@@ -397,14 +466,12 @@ public class controladorUsuario extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: mostrarSolicitudesPersonal
-     * Muestra la lista de solicitudes de promoción a profesor
-     * **La verificación de admin se hace en doGet**
+     * Muestra la vista de gestión de solicitudes pendientes.
+     * Solo accesible vía {@code doGet} por administradores.
      */
     private void mostrarSolicitudesPersonal(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // Obtener usuarios con solicitud pendiente
         List<Usuario> solicitudesPendientes = em.createQuery(
                 "SELECT u FROM Usuario u WHERE u.solicitudProfesor = 'PENDIENTE'", Usuario.class)
                 .getResultList();
@@ -416,10 +483,15 @@ public class controladorUsuario extends HttpServlet {
         forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
     }
 
+    
+
     /**
-     * MÉTODO PRIVADO: procesarAprobarSolicitud
-     * Aprueba una solicitud de profesor/personal
-     * **La verificación de admin se hace en doPost**
+     * Procesa la aprobación de una solicitud de profesor.
+     * <p>Efectos:</p>
+     * <ul>
+     * <li>Cambia el rol del usuario a '2' (Profesor).</li>
+     * <li>Actualiza el estado de solicitud a 'APROBADA'.</li>
+     * </ul>
      */
     private void procesarAprobarSolicitud(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -433,8 +505,7 @@ public class controladorUsuario extends HttpServlet {
                 Usuario usuario = em.find(Usuario.class, usuarioId);
 
                 if (usuario != null && "PENDIENTE".equals(usuario.getSolicitudProfesor())) {
-                    // Cambiar rol a profesor (rol = 2) y marcar solicitud como aprobada
-                    usuario.setRol(2);
+                    usuario.setRol(2); // Rol Profesor
                     usuario.setSolicitudProfesor("APROBADA");
                     em.merge(usuario);
 
@@ -460,9 +531,12 @@ public class controladorUsuario extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: procesarRechazarSolicitud
-     * Rechaza una solicitud de profesor/personal
-     * **La verificación de admin se hace en doPost**
+     * Procesa el rechazo de una solicitud de profesor.
+     * <p>Efectos:</p>
+     * <ul>
+     * <li>Mantiene el rol actual del usuario.</li>
+     * <li>Actualiza el estado de solicitud a 'RECHAZADA'.</li>
+     * </ul>
      */
     private void procesarRechazarSolicitud(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -476,7 +550,6 @@ public class controladorUsuario extends HttpServlet {
                 Usuario usuario = em.find(Usuario.class, usuarioId);
 
                 if (usuario != null && "PENDIENTE".equals(usuario.getSolicitudProfesor())) {
-                    // Marcar solicitud como rechazada, mantener rol actual
                     usuario.setSolicitudProfesor("RECHAZADA");
                     em.merge(usuario);
 
@@ -502,8 +575,8 @@ public class controladorUsuario extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: procesarLogin
-     * Procesa la autenticación de un usuario
+     * Gestiona la autenticación del usuario contra el servicio {@link AuthService}.
+     * Crea la sesión HTTP si las credenciales son válidas.
      */
     private void procesarLogin(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -520,20 +593,20 @@ public class controladorUsuario extends HttpServlet {
                 return;
             }
 
-            // Utilizar servicio de autenticación
+            // Delegación de lógica al servicio de autenticación
             AuthService authService = new AuthService();
-            authService.em = em;
+            authService.em = em; // Inyección manual necesaria si AuthService no es un EJB gestionado
             Usuario usuario = authService.autenticarPorEmail(email, password);
 
             if (usuario != null) {
                 LOG.log(Level.INFO, "Login exitoso para usuario: {0}, rol: {1}",
                         new Object[]{usuario.getNombre(), usuario.getRol()});
 
-                // Crear sesión y almacenar usuario
+                // Creación de Sesión
                 HttpSession session = request.getSession();
                 session.setAttribute("usuario", usuario);
 
-                // Redirigir según rol
+                // Redirección basada en Rol
                 if (usuario.getRol() == 0) {
                     LOG.log(Level.INFO, "Redirigiendo admin a panel");
                     response.sendRedirect(request.getContextPath() + "/usuario/panel");
@@ -552,11 +625,13 @@ public class controladorUsuario extends HttpServlet {
         }
     }
 
-    // ===== MÉTODOS DE ACCESO A DATOS =====
+    // ==========================================
+    // CAPA DE ACCESO A DATOS (DAO INTERNO)
+    // ==========================================
 
     /**
-     * MÉTODO PRIVADO: obtenerUsuarios
-     * Obtiene la lista de todos los usuarios del sistema
+     * Recupera todos los usuarios registrados.
+     * @return Lista completa de usuarios.
      */
     private List<Usuario> obtenerUsuarios() {
         TypedQuery<Usuario> query = em.createQuery("SELECT u FROM Usuario u", Usuario.class);
@@ -564,9 +639,12 @@ public class controladorUsuario extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: findByEmailOrDniExcludingId
-     * Busca un usuario por email o DNI excluyendo un ID específico
-     * Utilizado para verificar duplicados al editar
+     * Busca colisiones de Email o DNI excluyendo un ID específico.
+     * Esencial para validaciones durante la edición de perfil.
+     * * @param email Email a comprobar.
+     * @param dni DNI a comprobar.
+     * @param excludeId ID del usuario que se está editando (para no detectarse a sí mismo).
+     * @return El usuario encontrado o null.
      */
     private Usuario findByEmailOrDniExcludingId(String email, String dni, Long excludeId) {
         try {
@@ -586,8 +664,10 @@ public class controladorUsuario extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: findByEmailOrDni
-     * Busca un usuario por email o DNI
+     * Busca colisiones de Email o DNI para nuevos registros.
+     * * @param email Email a comprobar.
+     * @param dni DNI a comprobar.
+     * @return El usuario encontrado o null.
      */
     private Usuario findByEmailOrDni(String email, String dni) {
         try {
@@ -606,9 +686,10 @@ public class controladorUsuario extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: save
-     * Persiste un usuario en la base de datos
-     * Detecta automáticamente si es creación o actualización
+     * Persiste o actualiza un usuario utilizando una transacción JTA.
+     * Detecta automáticamente si debe ejecutar {@code persist} (nuevo) o {@code merge} (existente).
+     * * @param usuario La entidad a guardar.
+     * @throws RuntimeException Si falla la transacción.
      */
     public void save(Usuario usuario) {
         Long id = usuario.getId();
@@ -637,8 +718,8 @@ public class controladorUsuario extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: borrarUsuario
-     * Elimina un usuario del sistema
+     * Elimina un usuario por su ID dentro de una transacción.
+     * @param id ID del usuario a borrar.
      */
     private void borrarUsuario(Long id) {
         try {
@@ -658,11 +739,14 @@ public class controladorUsuario extends HttpServlet {
         }
     }
 
-    // ===== MÉTODOS AUXILIARES =====
+    // ==========================================
+    // MÉTODOS AUXILIARES Y DE SEGURIDAD
+    // ==========================================
 
     /**
-     * MÉTODO PRIVADO: esAdministrador
-     * Verifica si el usuario logueado tiene permisos de administrador (rol = 0)
+     * Comprueba si la sesión actual pertenece a un Administrador.
+     * @param request La petición HTTP.
+     * @return true si el usuario tiene rol 0 (Admin).
      */
     private boolean esAdministrador(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
@@ -674,9 +758,11 @@ public class controladorUsuario extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: tienePermisoParaEditar
-     * Verifica si el usuario tiene permisos para editar otro usuario
-     * Permisos: ser administrador O estar editando el propio perfil
+     * Lógica de autorización para edición.
+     * Permite la operación si el usuario es Admin O si se está editando a sí mismo.
+     * * @param request La petición con la sesión activa.
+     * @param idUsuarioEditado El ID del perfil que se intenta modificar.
+     * @return true si tiene permiso.
      */
     private boolean tienePermisoParaEditar(HttpServletRequest request, Long idUsuarioEditado) {
         HttpSession session = request.getSession(false);
@@ -694,8 +780,7 @@ public class controladorUsuario extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: setLayoutAttributes
-     * Establece los atributos necesarios para el layout principal
+     * Helper para inyectar atributos comunes del layout JSP (títulos, migas de pan).
      */
     private void setLayoutAttributes(HttpServletRequest request, String title, String subtitle) {
         request.setAttribute("pageTitle", title);
@@ -703,8 +788,7 @@ public class controladorUsuario extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: forward
-     * Realiza un forward a una JSP específica
+     * Helper para redirigir internamente (Forward) a una vista JSP.
      */
     private void forward(HttpServletRequest request, HttpServletResponse response, String vista)
             throws ServletException, IOException {
@@ -713,8 +797,7 @@ public class controladorUsuario extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: forwardError
-     * Muestra la página de error con un mensaje específico
+     * Helper para redirigir a la página de error estandarizada.
      */
     private void forwardError(HttpServletRequest request, HttpServletResponse response, String mensaje)
             throws ServletException, IOException {
@@ -723,17 +806,13 @@ public class controladorUsuario extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: hashPassword
-     * Encripta una contraseña usando el algoritmo MD5
-     * 
-     * ⚠️ ADVERTENCIA: MD5 es considerado INSECURE para contraseñas porque:
-     * - Es vulnerable a ataques de colisión
-     * - Es muy rápido (permite brute force attacks)
-     * - No usa salt (misma contraseña = mismo hash siempre)
-     * 
-     * @param password La contraseña en texto plano a encriptar
-     * @return String El hash MD5 de la contraseña en mayúsculas
-     * @throws NoSuchAlgorithmException Si el algoritmo MD5 no está disponible en el sistema
+     * Genera un hash MD5 de la contraseña.
+     * * <p><strong>⚠️ ADVERTENCIA DE SEGURIDAD:</strong> MD5 se considera criptográficamente roto.
+     * Se mantiene por compatibilidad con sistemas legacy. Para nuevos desarrollos,
+     * migrar a BCrypt o Argon2.</p>
+     * * @param password Contraseña en texto plano.
+     * @return Hash hexadecimal en mayúsculas.
+     * @throws NoSuchAlgorithmException Si el proveedor de seguridad no soporta MD5.
      */
     private String hashPassword(String password) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("MD5");
@@ -742,5 +821,120 @@ public class controladorUsuario extends HttpServlet {
         String myHash = DatatypeConverter.printHexBinary(digest).toUpperCase();
         return myHash;
     }
-    
+
+    // ==========================================
+    // ENDPOINTS AJAX (JSON RESPONSES)
+    // ==========================================
+
+    /**
+     * Valida la disponibilidad de un email vía AJAX.
+     * Escribe un JSON {@code {"valido": boolean, "mensaje": string}} en la respuesta.
+     */
+    private void validarEmailAjax(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        String email = request.getParameter("email");
+        String idParam = request.getParameter("id"); // Para excluir el propio usuario al editar
+
+        if (email == null || email.trim().isEmpty()) {
+            response.getWriter().write("{\"valido\": false, \"mensaje\": \"Email requerido\"}");
+            return;
+        }
+
+        try {
+            String emailNormalizado = email.trim().toLowerCase();
+
+            // Validar formato
+            if (!emailNormalizado.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+                response.getWriter().write("{\"valido\": false, \"mensaje\": \"Formato de email inválido\"}");
+                return;
+            }
+
+            // Buscar en BD
+            Usuario usuarioExistente;
+            if (idParam != null && !idParam.trim().isEmpty()) {
+                Long id = Long.parseLong(idParam);
+                TypedQuery<Usuario> query = em.createQuery(
+                        "SELECT u FROM Usuario u WHERE LOWER(u.email) = LOWER(:email) AND u.id != :id",
+                        Usuario.class);
+                query.setParameter("email", emailNormalizado);
+                query.setParameter("id", id);
+                List<Usuario> resultados = query.getResultList();
+                usuarioExistente = resultados.isEmpty() ? null : resultados.get(0);
+            } else {
+                TypedQuery<Usuario> query = em.createQuery(
+                        "SELECT u FROM Usuario u WHERE LOWER(u.email) = LOWER(:email)",
+                        Usuario.class);
+                query.setParameter("email", emailNormalizado);
+                List<Usuario> resultados = query.getResultList();
+                usuarioExistente = resultados.isEmpty() ? null : resultados.get(0);
+            }
+
+            if (usuarioExistente != null) {
+                response.getWriter().write("{\"valido\": false, \"mensaje\": \"Este email ya está registrado\"}");
+            } else {
+                response.getWriter().write("{\"valido\": true, \"mensaje\": \"Email disponible\"}");
+            }
+
+        } catch (Exception e) {
+            LOG.log(Level.SEVERE, "Error al validar email", e);
+            response.getWriter().write("{\"valido\": false, \"mensaje\": \"Error al validar email\"}");
+        }
+    }
+
+    /**
+     * Valida la disponibilidad de un DNI vía AJAX.
+     * Escribe un JSON {@code {"valido": boolean, "mensaje": string}} en la respuesta.
+     */
+    private void validarDniAjax(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+
+        String dni = request.getParameter("dni");
+        String idParam = request.getParameter("id"); // Para excluir el propio usuario al editar
+
+        if (dni == null || dni.trim().isEmpty()) {
+            response.getWriter().write("{\"valido\": false, \"mensaje\": \"DNI requerido\"}");
+            return;
+        }
+
+        try {
+            String dniNormalizado = dni.trim();
+
+            // Buscar en BD
+            Usuario usuarioExistente;
+            if (idParam != null && !idParam.trim().isEmpty()) {
+                Long id = Long.parseLong(idParam);
+                TypedQuery<Usuario> query = em.createQuery(
+                        "SELECT u FROM Usuario u WHERE u.dni = :dni AND u.id != :id",
+                        Usuario.class);
+                query.setParameter("dni", dniNormalizado);
+                query.setParameter("id", id);
+                List<Usuario> resultados = query.getResultList();
+                usuarioExistente = resultados.isEmpty() ? null : resultados.get(0);
+            } else {
+                TypedQuery<Usuario> query = em.createQuery(
+                        "SELECT u FROM Usuario u WHERE u.dni = :dni",
+                        Usuario.class);
+                query.setParameter("dni", dniNormalizado);
+                List<Usuario> resultados = query.getResultList();
+                usuarioExistente = resultados.isEmpty() ? null : resultados.get(0);
+            }
+
+            if (usuarioExistente != null) {
+                response.getWriter().write("{\"valido\": false, \"mensaje\": \"Este DNI ya está registrado\"}");
+            } else {
+                response.getWriter().write("{\"valido\": true, \"mensaje\": \"DNI disponible\"}");
+            }
+
+        } catch (Exception e) {
+            LOG.log(Level.SEVERE, "Error al validar DNI", e);
+            response.getWriter().write("{\"valido\": false, \"mensaje\": \"Error al validar DNI\"}");
+        }
+    }
 }

@@ -30,36 +30,42 @@ import java.nio.file.StandardCopyOption;
 
 /**
  * CONTROLADOR DE ESPACIOS DEPORTIVOS
- * 
- * Gestiona todas las operaciones relacionadas con las instalaciones deportivas:
- * - Listado de instalaciones disponibles
- * - Panel administrativo de gestión
- * - Creación y edición de instalaciones
- * - Visualización de detalles
- * - Eliminación de instalaciones
- * - Manejo de subida de imágenes
- * 
- * @author agustinrodriguez
- * @version 2.0 - Refactorizado y comentado
+ * * <p>Servlet encargado de la gestión integral de las instalaciones deportivas (CRUD).</p>
+ * * <p><strong>Características principales:</strong></p>
+ * <ul>
+ * <li>Listado público y privado (panel de administración).</li>
+ * <li>Gestión de subida de imágenes mediante {@code @MultipartConfig}.</li>
+ * <li>Persistencia de archivos en directorios de despliegue y fuente.</li>
+ * <li>Control de transacciones JTA para integridad de datos.</li>
+ * </ul>
+ * * @author agustinrodriguez
+ * @version 2.0
  */
 @MultipartConfig
 @WebServlet(name = "ControladorEspacioDeportivo", urlPatterns = {"/instalaciones/*"})
 public class controladorEspacioDeportivo extends HttpServlet {
 
-    // ===== INYECCIÓN DE DEPENDENCIAS =====
+    // ==========================================
+    // INYECCIÓN DE DEPENDENCIAS
+    // ==========================================
+
+    /** Contexto de persistencia para operaciones JPA. */
     @PersistenceContext(unitName = "instalacionesPU")
     private EntityManager em;
     
+    /** Gestor de transacciones para operaciones de escritura (crear/borrar/editar). */
     @Resource
     private UserTransaction utx;
     
-    // Logger para rastrear eventos importantes
     private static final Logger LOG = Logger.getLogger(controladorEspacioDeportivo.class.getName());
 
+    // ==========================================
+    // ENRUTAMIENTO (GET)
+    // ==========================================
+
     /**
-     * MÉTODO: doGet
-     * Maneja las peticiones GET del controlador
-     * Utiliza switch para enrutar a diferentes métodos según el path
+     * Maneja las peticiones GET para la navegación y visualización.
+     * Actúa como un router basado en la URL solicitada.
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -68,14 +74,12 @@ public class controladorEspacioDeportivo extends HttpServlet {
         String path = request.getPathInfo() != null ? request.getPathInfo() : "/";
 
         switch (path) {
-            // RUTA: /instalaciones/
-            // Mostrar lista pública de todas las instalaciones
+            // Listado público
             case "/" -> {
                 mostrarInstalaciones(request, response);
             }
             
-            // RUTA: /instalaciones/panel
-            // Panel administrativo - requiere permisos de admin
+            // Panel de gestión (Solo Admin)
             case "/panel" -> {
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos para acceder a esta sección");
@@ -84,8 +88,7 @@ public class controladorEspacioDeportivo extends HttpServlet {
                 mostrarPanelAdmin(request, response);
             }
             
-            // RUTA: /instalaciones/nueva
-            // Formulario para crear nueva instalación
+            // Formulario de creación (Solo Admin)
             case "/nueva" -> {
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos para crear instalaciones");
@@ -94,8 +97,7 @@ public class controladorEspacioDeportivo extends HttpServlet {
                 mostrarFormularioNueva(request, response);
             }
             
-            // RUTA: /instalaciones/editar?id=X
-            // Formulario para editar instalación existente
+            // Formulario de edición (Solo Admin)
             case "/editar" -> {
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos para editar instalaciones");
@@ -104,14 +106,12 @@ public class controladorEspacioDeportivo extends HttpServlet {
                 mostrarFormularioEditar(request, response);
             }
             
-            // RUTA: /instalaciones/detalle?id=X
-            // Página de detalles de una instalación específica
+            // Vista de detalle individual
             case "/detalle" -> {
                 mostrarDetalle(request, response);
             }
             
-            // RUTA: /instalaciones/borrar?id=X
-            // Eliminar una instalación
+            // Eliminación (Solo Admin)
             case "/borrar" -> {
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos para eliminar instalaciones");
@@ -120,16 +120,18 @@ public class controladorEspacioDeportivo extends HttpServlet {
                 borrarInstalacion(request, response);
             }
             
-            // Ruta no reconocida
             default ->
                 forwardError(request, response, "Página no encontrada.");
         }
     }
 
+    // ==========================================
+    // PROCESAMIENTO (POST)
+    // ==========================================
+
     /**
-     * MÉTODO: doPost
-     * Maneja las peticiones POST del controlador
-     * Principalmente para procesar formularios de creación/edición
+     * Maneja las peticiones POST, principalmente para el envío de formularios
+     * con contenido multimedia (multipart/form-data).
      */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -138,8 +140,6 @@ public class controladorEspacioDeportivo extends HttpServlet {
         String accion = request.getPathInfo();
 
         switch (accion) {
-            // RUTA: /instalaciones/guardar
-            // Procesar formulario de creación/edición de instalación
             case "/guardar" -> {
                 procesarGuardarInstalacion(request, response);
             }
@@ -148,9 +148,12 @@ public class controladorEspacioDeportivo extends HttpServlet {
         }
     }
 
+    // ==========================================
+    // MÉTODOS DE NAVEGACIÓN (VISTAS)
+    // ==========================================
+
     /**
-     * MÉTODO PRIVADO: mostrarInstalaciones
-     * Obtiene todas las instalaciones y las muestra en la vista pública
+     * Recupera y muestra el catálogo público de instalaciones.
      */
     private void mostrarInstalaciones(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -165,9 +168,7 @@ public class controladorEspacioDeportivo extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: mostrarPanelAdmin
-     * Carga el panel administrativo con todas las instalaciones
-     * Solo accesible para administradores (rol = 0)
+     * Recupera y muestra el panel de administración (tabla de gestión).
      */
     private void mostrarPanelAdmin(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -182,8 +183,7 @@ public class controladorEspacioDeportivo extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: mostrarFormularioNueva
-     * Muestra el formulario vacío para crear una nueva instalación
+     * Prepara y muestra el formulario vacío para una nueva instalación.
      */
     private void mostrarFormularioNueva(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -195,8 +195,7 @@ public class controladorEspacioDeportivo extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: mostrarFormularioEditar
-     * Carga los datos de una instalación y muestra el formulario para editarla
+     * Busca una instalación por ID y muestra el formulario pre-rellenado para edición.
      */
     private void mostrarFormularioEditar(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -219,8 +218,7 @@ public class controladorEspacioDeportivo extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: mostrarDetalle
-     * Muestra la página de detalles de una instalación específica
+     * Muestra la ficha técnica detallada de una instalación.
      */
     private void mostrarDetalle(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -242,15 +240,28 @@ public class controladorEspacioDeportivo extends HttpServlet {
         }
     }
 
+    // ==========================================
+    // LÓGICA DE NEGOCIO (CORE)
+    // ==========================================
+
+    
+
     /**
-     * MÉTODO PRIVADO: procesarGuardarInstalacion
-     * Procesa el formulario de creación/edición de instalación
-     * Incluye: validación de datos, manejo de subida de archivo, persistencia en BD
+     * Procesa la creación o actualización de una instalación.
+     * * <p><strong>Flujo de trabajo:</strong></p>
+     * <ol>
+     * <li>Recibe parámetros multipart (texto y archivo).</li>
+     * <li>Si hay imagen nueva, genera un UUID y la guarda en disco.</li>
+     * <li>Guarda la imagen en <em>dos ubicaciones</em>: carpeta {@code build} (despliegue) y carpeta {@code web} (fuente) para persistencia en desarrollo.</li>
+     * <li>Valida campos obligatorios.</li>
+     * <li>Determina si es INSERT o UPDATE según la presencia del ID.</li>
+     * <li>Persiste la entidad en base de datos.</li>
+     * </ol>
      */
     private void procesarGuardarInstalacion(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // ===== FASE 1: OBTENER PARÁMETROS DEL FORMULARIO =====
+        // 1. OBTENER DATOS
         String idParam = request.getParameter("id");
         String nombre = request.getParameter("nombre");
         String tipo = request.getParameter("tipo");
@@ -258,45 +269,42 @@ public class controladorEspacioDeportivo extends HttpServlet {
         String descripcion = request.getParameter("descripcion");
         String imagenUrlActual = request.getParameter("imagenUrlActual"); 
 
-        // ===== FASE 2: PROCESAR SUBIDA DE ARCHIVO =====
+        // 2. GESTIÓN DE ARCHIVOS (SUBIDA DE IMAGEN)
         String urlParaDB = imagenUrlActual; 
         Part filePart = request.getPart("imagen");
         String fileName = filePart.getSubmittedFileName();
 
         if (fileName != null && !fileName.isEmpty()) {
             try {
-                // Crear nombre de archivo único usando UUID para evitar conflictos
+                // Generar nombre único (UUID) para evitar colisiones
                 String extension = fileName.substring(fileName.lastIndexOf("."));
                 String uniqueName = UUID.randomUUID().toString() + extension;
                 
-                // URL relativa que se guardará en la BD
+                // URL relativa para guardar en BD
                 urlParaDB = "/img/instalaciones/temp/" + uniqueName;
 
-                // Obtener rutas del servidor
+                // Definición de rutas físicas
                 String appPath = getServletContext().getRealPath("/");
                 String sourcePath = appPath.replace("build" + File.separator + "web", "web");
 
-                // Ruta de despliegue: build/web/img/instalaciones/temp
+                // Rutas de destino
                 Path deployPath = Paths.get(appPath, "img", "instalaciones", "temp");
-
-                // Ruta de proyecto: web/img/instalaciones/temp
                 Path projectPath = Paths.get(sourcePath, "img", "instalaciones", "temp");
 
                 // Crear directorios si no existen
                 if (!Files.exists(deployPath)) Files.createDirectories(deployPath);
                 if (!Files.exists(projectPath)) Files.createDirectories(projectPath);
 
-                // Definir archivos de destino
                 Path deployFile = deployPath.resolve(uniqueName);
                 Path projectFile = projectPath.resolve(uniqueName);
 
-                // Guardar archivo en carpeta de despliegue
+                // Guardar en 'Build' (Servidor activo)
                 try (InputStream fileContent = filePart.getInputStream()) {
                     Files.copy(fileContent, deployFile, StandardCopyOption.REPLACE_EXISTING);
                 }
                 LOG.log(Level.INFO, "Archivo guardado en despliegue: {0}", deployFile);
 
-                // Copiar archivo a carpeta del proyecto
+                // Guardar en 'Source' (Persistencia desarrollo)
                 Files.copy(deployFile, projectFile, StandardCopyOption.REPLACE_EXISTING);
                 LOG.log(Level.INFO, "Archivo copiado a proyecto: {0}", projectFile);
 
@@ -307,27 +315,25 @@ public class controladorEspacioDeportivo extends HttpServlet {
             }
         }
 
-        // ===== FASE 3: VALIDAR Y NORMALIZAR DATOS =====
+        // 3. VALIDACIÓN Y NORMALIZACIÓN
         try {
-            // Validar campos requeridos
             if (nombre == null || tipo == null || ubicacion == null ||
                 nombre.trim().isEmpty() || tipo.trim().isEmpty() || ubicacion.trim().isEmpty()) {
                 forwardError(request, response, "Nombre, tipo y ubicación son campos obligatorios");
                 return;
             }
 
-            // Normalizar datos (trim y sanitizar)
             String nombreNormalizado = nombre.trim();
             String tipoNormalizado = tipo.trim();
             String ubicacionNormalizada = ubicacion.trim();
             String descripcionNormalizada = descripcion != null ? descripcion.trim() : "";
             String imagenUrlNormalizada = (urlParaDB != null && !urlParaDB.isEmpty()) ? urlParaDB.trim() : null;
 
-            // ===== FASE 4: DETERMINAR MODO (CREAR O EDITAR) =====
+            // 4. CREACIÓN O EDICIÓN DE ENTIDAD
             EspacioDeportivo instalacion;
 
             if (idParam != null && !idParam.trim().isEmpty()) {
-                // MODO EDICIÓN: Actualizar instalación existente
+                // MODO EDICIÓN
                 Long id = Long.parseLong(idParam);
                 instalacion = em.find(EspacioDeportivo.class, id);
 
@@ -336,19 +342,18 @@ public class controladorEspacioDeportivo extends HttpServlet {
                     return;
                 }
 
-                // Actualizar campos
                 instalacion.setNombre(nombreNormalizado);
                 instalacion.setTipo(tipoNormalizado);
                 instalacion.setUbicacion(ubicacionNormalizada);
                 instalacion.setDescripcion(descripcionNormalizada);
                 
-                // Solo actualizar imagen si se proporcionó una nueva
+                // Actualizar imagen solo si se subió una nueva
                 if (imagenUrlNormalizada != null) {
                     instalacion.setImagenUrl(imagenUrlNormalizada);
                 }
 
             } else {
-                // MODO CREACIÓN: Crear nueva instalación
+                // MODO CREACIÓN
                 instalacion = new EspacioDeportivo(
                     nombreNormalizado,
                     tipoNormalizado,
@@ -358,10 +363,9 @@ public class controladorEspacioDeportivo extends HttpServlet {
                 );
             }
 
-            // ===== FASE 5: GUARDAR EN BASE DE DATOS =====
+            // 5. PERSISTENCIA
             guardarInstalacion(instalacion);
 
-            // Redirigir al panel de administración
             response.sendRedirect(request.getContextPath() + "/instalaciones/panel");
 
         } catch (Exception e) {
@@ -371,9 +375,7 @@ public class controladorEspacioDeportivo extends HttpServlet {
     }
     
     /**
-     * MÉTODO PRIVADO: borrarInstalacion
-     * Elimina una instalación del sistema
-     * Nota: La eliminación del archivo de imagen podría implementarse aquí
+     * Elimina una instalación recibiendo su ID por parámetro GET.
      */
     private void borrarInstalacion(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -391,11 +393,13 @@ public class controladorEspacioDeportivo extends HttpServlet {
         }
     }
 
-    // ===== MÉTODOS DE ACCESO A DATOS (DATA ACCESS) =====
+    // ==========================================
+    // CAPA DE ACCESO A DATOS (DAO INTERNO)
+    // ==========================================
 
     /**
-     * MÉTODO PRIVADO: obtenerTodasLasInstalaciones
-     * Retrieves all sports facilities from the database ordered by name
+     * Obtiene todas las instalaciones ordenadas alfabéticamente.
+     * @return Lista de EspacioDeportivo.
      */
     private List<EspacioDeportivo> obtenerTodasLasInstalaciones() {
         TypedQuery<EspacioDeportivo> query = em.createQuery(
@@ -404,9 +408,8 @@ public class controladorEspacioDeportivo extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: guardarInstalacion
-     * Persiste una instalación en la base de datos
-     * Detecta automáticamente si es creación (INSERT) o actualización (UPDATE)
+     * Persiste la entidad en la base de datos utilizando transacciones JTA.
+     * Maneja automáticamente {@code persist} (nuevo) o {@code merge} (existente).
      */
     private void guardarInstalacion(EspacioDeportivo instalacion) {
         Long id = instalacion.getId();
@@ -414,11 +417,9 @@ public class controladorEspacioDeportivo extends HttpServlet {
             utx.begin();
 
             if (id == null) {
-                // Nueva instalación: usar persist
                 em.persist(instalacion);
                 LOG.log(Level.INFO, "Nueva instalación guardada: {0}", instalacion.getNombre());
             } else {
-                // Instalación existente: usar merge
                 em.merge(instalacion);
                 LOG.log(Level.INFO, "Instalación actualizada: {0}", instalacion.getNombre());
             }
@@ -437,8 +438,7 @@ public class controladorEspacioDeportivo extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: eliminarInstalacion
-     * Elimina una instalación de la base de datos
+     * Elimina la entidad de la base de datos.
      */
     private void eliminarInstalacion(Long id) {
         try {
@@ -459,11 +459,12 @@ public class controladorEspacioDeportivo extends HttpServlet {
         }
     }
 
-    // ===== MÉTODOS AUXILIARES =====
+    // ==========================================
+    // MÉTODOS AUXILIARES
+    // ==========================================
 
     /**
-     * MÉTODO PRIVADO: esAdministrador
-     * Verifica si el usuario logueado tiene permisos de administrador (rol = 0)
+     * Verifica si el usuario en sesión es administrador (Rol 0).
      */
     private boolean esAdministrador(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
@@ -475,8 +476,7 @@ public class controladorEspacioDeportivo extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: setLayoutAttributes
-     * Establece los atributos necesarios para el layout principal
+     * Inyecta atributos comunes para el layout (Título y subtítulo de página).
      */
     private void setLayoutAttributes(HttpServletRequest request, String title, String subtitle) {
         request.setAttribute("pageTitle", title);
@@ -484,8 +484,7 @@ public class controladorEspacioDeportivo extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: forward
-     * Realiza un forward a una JSP específica
+     * Redirige internamente a una vista JSP.
      */
     private void forward(HttpServletRequest request, HttpServletResponse response, String vista)
             throws ServletException, IOException {
@@ -494,8 +493,7 @@ public class controladorEspacioDeportivo extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: forwardError
-     * Muestra la página de error con un mensaje específico
+     * Redirige a la página de error estándar con un mensaje personalizado.
      */
     private void forwardError(HttpServletRequest request, HttpServletResponse response, String mensaje)
             throws ServletException, IOException {

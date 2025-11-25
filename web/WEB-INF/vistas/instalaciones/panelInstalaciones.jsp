@@ -1,13 +1,17 @@
 <%-- 
-    Document   : panelInstalaciones
+    Document   : panelInstalaciones.jsp
     Created on : 6 nov 2025, 20:17:31
     Author     : agustinrodriguez
+    Description: DASHBOARD DE ADMINISTRACIÓN DE INSTALACIONES
+                 Permite ver estadísticas, listar todas las instalaciones y acceder a las acciones CRUD.
+                 Solo accesible para administradores.
 --%>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 
 <div class="instalaciones-container">
+    
     <div class="instalaciones-header">
         <div class="header-content">
             <span class="badge">Panel Administrativo</span>
@@ -19,8 +23,8 @@
         </a>
     </div>
 
-    <!-- Estadísticas -->
     <div class="stats-grid">
+        
         <div class="stats-card stats-primary">
             <div class="stats-content">
                 <div class="stats-info">
@@ -37,9 +41,12 @@
             <div class="stats-content">
                 <div class="stats-info">
                     <h3 class="stats-number">
+                        <%-- Lógica de conteo en JSP --%>
                         <c:set var="canchasCount" value="0" />
                         <c:forEach var="inst" items="${instalaciones}">
-                            <c:if test="${inst.tipo.toLowerCase().contains('futbol') || inst.tipo.toLowerCase().contains('tenis') || inst.tipo.toLowerCase().contains('pádel')}">
+                            <c:if test="${inst.tipo.toLowerCase().contains('futbol') || 
+                                        inst.tipo.toLowerCase().contains('tenis') || 
+                                        inst.tipo.toLowerCase().contains('pádel')}">
                                 <c:set var="canchasCount" value="${canchasCount + 1}" />
                             </c:if>
                         </c:forEach>
@@ -59,7 +66,8 @@
                     <h3 class="stats-number">
                         <c:set var="gimnasiosCount" value="0" />
                         <c:forEach var="inst" items="${instalaciones}">
-                            <c:if test="${inst.tipo.toLowerCase().contains('gimnasio') || inst.tipo.toLowerCase().contains('fitness')}">
+                            <c:if test="${inst.tipo.toLowerCase().contains('gimnasio') || 
+                                        inst.tipo.toLowerCase().contains('fitness')}">
                                 <c:set var="gimnasiosCount" value="${gimnasiosCount + 1}" />
                             </c:if>
                         </c:forEach>
@@ -74,7 +82,6 @@
         </div>
     </div>
 
-    <!-- Tabla de Instalaciones -->
     <div class="table-container">
         <div class="table-header">
             <h3><i class="fas fa-list"></i> Lista de Instalaciones</h3>
@@ -84,8 +91,10 @@
                 </span>
             </div>
         </div>
+        
         <div class="table-content">
             <c:choose>
+                <%-- CASO A: Lista con datos --%>
                 <c:when test="${not empty instalaciones}">
                     <table class="data-table">
                         <thead>
@@ -104,35 +113,29 @@
                                         <i class="fas fa-building text-muted"></i> 
                                         <strong>${instalacion.nombre}</strong>
                                     </td>
+                                    
                                     <td>
                                         <span class="badge badge-${instalacion.tipo.toLowerCase()}">
                                             <c:choose>
-                                                <c:when test="${instalacion.tipo == 'Fútbol'}">
-                                                    <i class="fas fa-futbol"></i>
-                                                </c:when>
-                                                <c:when test="${instalacion.tipo == 'Baloncesto'}">
-                                                    <i class="fas fa-basketball-ball"></i>
-                                                </c:when>
-                                                <c:when test="${instalacion.tipo == 'Tenis'}">
-                                                    <i class="fas fa-table-tennis"></i>
-                                                </c:when>
-                                                <c:when test="${instalacion.tipo == 'Natación'}">
-                                                    <i class="fas fa-swimmer"></i>
-                                                </c:when>
-                                                <c:when test="${instalacion.tipo == 'Gimnasio'}">
-                                                    <i class="fas fa-dumbbell"></i>
-                                                </c:when>
-                                                <c:otherwise>
-                                                    <i class="fas fa-map-marker-alt"></i>
-                                                </c:otherwise>
+                                                <c:when test="${instalacion.tipo == 'Fútbol'}"><i class="fas fa-futbol"></i></c:when>
+                                                <c:when test="${instalacion.tipo == 'Baloncesto'}"><i class="fas fa-basketball-ball"></i></c:when>
+                                                <c:when test="${instalacion.tipo == 'Tenis'}"><i class="fas fa-table-tennis"></i></c:when>
+                                                <c:when test="${instalacion.tipo == 'Pádel'}"><i class="fas fa-table-tennis"></i></c:when>
+                                                <c:when test="${instalacion.tipo == 'Natación'}"><i class="fas fa-swimmer"></i></c:when>
+                                                <c:when test="${instalacion.tipo == 'Gimnasio'}"><i class="fas fa-dumbbell"></i></c:when>
+                                                <c:when test="${instalacion.tipo == 'Polideportivo'}"><i class="fas fa-warehouse"></i></c:when>
+                                                <c:when test="${instalacion.tipo == 'Atletismo'}"><i class="fas fa-running"></i></c:when>
+                                                <c:otherwise><i class="fas fa-map-marker-alt"></i></c:otherwise>
                                             </c:choose>
                                             ${instalacion.tipo}
                                         </span>
                                     </td>
+                                    
                                     <td>
                                         <i class="fas fa-map-marker-alt text-danger"></i>
                                         ${instalacion.ubicacion}
                                     </td>
+                                    
                                     <td class="descripcion-cell">
                                         <c:choose>
                                             <c:when test="${not empty instalacion.descripcion && instalacion.descripcion.length() > 50}">
@@ -145,6 +148,7 @@
                                             </c:otherwise>
                                         </c:choose>
                                     </td>
+                                    
                                     <td class="actions-cell">
                                         <div class="action-buttons">
                                             <a href="${pageContext.request.contextPath}/instalaciones/detalle?id=${instalacion.id}" 
@@ -158,7 +162,7 @@
                                             <a href="${pageContext.request.contextPath}/instalaciones/borrar?id=${instalacion.id}" 
                                                class="btn-icon btn-danger" 
                                                title="Eliminar instalación"
-                                               onclick="return confirm('¿Estás seguro de eliminar \\'${instalacion.nombre}\\'?')">
+                                               onclick="return confirm('¿Estás seguro de eliminar \'${instalacion.nombre}\'?')">
                                                 <i class="fas fa-trash"></i>
                                             </a>
                                         </div>
@@ -168,6 +172,8 @@
                         </tbody>
                     </table>
                 </c:when>
+                
+                <%-- CASO B: Lista Vacía --%>
                 <c:otherwise>
                     <div class="empty-state">
                         <div class="empty-icon">
@@ -184,7 +190,6 @@
         </div>
     </div>
 
-    <!-- Navegación rápida -->
     <div class="quick-nav">
         <div class="quick-nav-header">
             <h3><i class="fas fa-compass"></i> Navegación Rápida</h3>

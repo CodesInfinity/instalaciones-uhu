@@ -1,9 +1,10 @@
 <%-- 
-    Document   : listaReservas
+    Document   : listaReservas.jsp
     Created on : 13 nov 2025
     Author     : agustinrodriguez
-    
-    Vista para mostrar las reservas del usuario
+    Description: HISTORIAL DE RESERVAS DEL USUARIO
+                 Muestra las reservas activas y pasadas en formato de tarjetas.
+                 Accesible para usuarios registrados.
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
@@ -11,7 +12,9 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 
 <div class="panel-content">
+    
     <div class="table-container">
+        
         <div class="table-header">
             <div class="header-title-with-button">
                 <h2>Mis Reservas</h2>
@@ -22,6 +25,7 @@
                     Nueva Reserva
                 </a>
             </div>
+            
             <div class="table-stats">
                 <span class="stat-badge">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,6 +46,8 @@
         </c:if>
 
         <c:choose>
+            
+            <%-- CASO A: NO HAY RESERVAS (EMPTY STATE) --%>
             <c:when test="${empty reservas}">
                 <div class="reservas-empty">
                     <div class="reservas-empty-icon">
@@ -59,10 +65,14 @@
                     </a>
                 </div>
             </c:when>
+            
+            <%-- CASO B: LISTADO DE RESERVAS (GRID) --%>
             <c:otherwise>
                 <div class="reservas-container">
                     <div class="reservas-grid">
                         <c:forEach var="reserva" items="${reservas}">
+                            
+                            <%-- Preparar variables de tiempo (Opcional para lógica de fechas pasadas) --%>
                             <jsp:useBean id="now" class="java.util.Date" />
                             <c:set var="ahora" value="${now.time}" />
                             <c:set var="inicioReserva" value="${reserva.inicioDate.time}" />
@@ -82,6 +92,7 @@
                                 </div>
 
                                 <div class="reserva-card-body">
+                                    
                                     <div class="reserva-info-item">
                                         <div class="reserva-info-icon">
                                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">

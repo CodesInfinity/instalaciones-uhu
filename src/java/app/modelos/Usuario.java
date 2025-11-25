@@ -4,14 +4,17 @@ import jakarta.persistence.*;
 import java.io.Serializable;
 
 /**
- * MODELO: USUARIO
- * 
- * Representa un usuario del sistema
- * Campos: dni, nombre, email, contraseña, rol, solicitud profesor
- * Roles: 0=Admin, 1=Estudiante, 2=Profesor
- * 
- * @author agustinrodriguez
- * @version 2.0 - Refactorizado y comentado
+ * ENTIDAD: USUARIO
+ * * <p>Representa a un actor dentro del sistema (Administrador, Estudiante o Profesor).
+ * Esta clase mapea la tabla <code>usuarios</code> de la base de datos.</p>
+ * * <p><strong>Gestión de Roles:</strong></p>
+ * <ul>
+ * <li><strong>0:</strong> Administrador (Acceso total al panel de gestión).</li>
+ * <li><strong>1:</strong> Estudiante (Rol por defecto, puede reservar pagando).</li>
+ * <li><strong>2:</strong> Profesor (Puede reservar gratuitamente ciertos espacios).</li>
+ * </ul>
+ * * @author agustinrodriguez
+ * @version 2.0
  */
 @Entity
 @Table(name = "usuarios")
@@ -19,40 +22,76 @@ public class Usuario implements Serializable {
 
     private static final long serialVersionUID = 1L;
     
-    // Identificador único autoincrementable
+    /**
+     * Identificador único del usuario (Clave Primaria).
+     * Generado automáticamente por la base de datos (Auto-increment).
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    // DNI del usuario (documento nacional de identidad)
+    /**
+     * Documento Nacional de Identidad.
+     * Se utiliza como identificación legal y debe ser único en el sistema.
+     */
+    @Column(unique = true, nullable = false)
     private String dni;
     
-    // Nombre completo del usuario
+    /**
+     * Nombre completo y apellidos del usuario.
+     */
     private String nombre;
     
-    // Email único del usuario
+    /**
+     * Correo electrónico.
+     * Actúa como nombre de usuario para el inicio de sesión (Login).
+     */
+    @Column(unique = true, nullable = false)
     private String email;
     
-    // Contraseña encriptada
+    /**
+     * Contraseña de acceso.
+     * <p><strong>Seguridad:</strong> Se almacena encriptada (Hash MD5 en esta versión).</p>
+     */
     private String password;
     
-    // Rol del usuario: 0=Administrador, 1=Estudiante, 2=Profesor
+    /**
+     * Nivel de privilegios del usuario.
+     * 0 = Admin, 1 = Estudiante, 2 = Profesor.
+     */
     private int rol;
     
-    // Estado de solicitud de profesor: null, "PENDIENTE", "APROBADA", "RECHAZADA"
+    /**
+     * Estado de la solicitud de ascenso a rol de Profesor.
+     * <p>Valores posibles:</p>
+     * <ul>
+     * <li><code>null</code>: No ha solicitado nada.</li>
+     * <li><code>"PENDIENTE"</code>: Solicitud enviada, esperando revisión del admin.</li>
+     * <li><code>"APROBADA"</code>: El usuario ya es profesor (rol actualizado a 2).</li>
+     * <li><code>"RECHAZADA"</code>: La solicitud fue denegada.</li>
+     * </ul>
+     */
     @Column(name = "solicitud_profesor", nullable = true)
     private String solicitudProfesor;
 
-    // ===== CONSTRUCTORES =====
+    // ==========================================
+    // CONSTRUCTORES
+    // ==========================================
     
     /**
-     * Constructor vacío (requerido por JPA)
+     * Constructor vacío requerido por la especificación de JPA.
+     * No debe usarse para crear objetos en la lógica de negocio.
      */
     public Usuario() {
     }
 
     /**
-     * Constructor con parámetros principales
+     * Constructor principal para crear nuevos usuarios.
+     * * @param dni Documento de identidad.
+     * @param nombre Nombre completo.
+     * @param email Correo electrónico (Login).
+     * @param password Contraseña (ya hasheada).
+     * @param rol Rol numérico inicial.
      */
     public Usuario(String dni, String nombre, String email, String password, int rol) {
         this.dni = dni;
@@ -63,7 +102,9 @@ public class Usuario implements Serializable {
         this.solicitudProfesor = null;
     }
 
-    // ===== GETTERS Y SETTERS =====
+    // ==========================================
+    // GETTERS Y SETTERS
+    // ==========================================
     
     public Long getId() {
         return id;
@@ -121,16 +162,22 @@ public class Usuario implements Serializable {
         this.solicitudProfesor = solicitudProfesor;
     }
     
-    // ===== MÉTODOS DE UTILIDAD =====
+    // ==========================================
+    // MÉTODOS DE UTILIDAD Y LÓGICA DE DOMINIO
+    // ==========================================
     
     /**
-     * Método conveniente para verificar si el usuario tiene solicitud de profesor pendiente
+     * Verifica si el usuario tiene una solicitud de ascenso a profesor
+     * pendiente de revisión.
+     * * @return true si el estado es "PENDIENTE".
      */
     public boolean tieneSolicitudPendiente() {
         return "PENDIENTE".equals(solicitudProfesor);
     }
     
-    // ===== MÉTODOS EQUALS Y HASHCODE =====
+    // ==========================================
+    // MÉTODOS OVERRIDE (JPA IDENTITY)
+    // ==========================================
     
     @Override
     public int hashCode() {
@@ -139,6 +186,10 @@ public class Usuario implements Serializable {
         return hash;
     }
 
+    /**
+     * Compara dos objetos Usuario basándose en su ID (Clave Primaria).
+     * Esencial para el correcto funcionamiento en Colecciones y contextos de persistencia.
+     */
     @Override
     public boolean equals(Object object) {
         if (!(object instanceof Usuario)) {
@@ -151,10 +202,8 @@ public class Usuario implements Serializable {
         return true;
     }
 
-    // ===== MÉTODO TOSTRING =====
-    
     @Override
     public String toString() {
-        return "app.modelo.Usuario[ id=" + id + " ]";
+        return "app.modelo.Usuario[ id=" + id + ", email=" + email + " ]";
     }
 }

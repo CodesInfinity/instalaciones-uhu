@@ -30,7 +30,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.StringReader;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import jakarta.json.Json;
@@ -47,25 +46,26 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * CONTROLADOR DE RESERVAS
- *
- * Gestiona todas las operaciones relacionadas con reservas: - Listado de
- * reservas (admin) - Creación de reservas con integración de Stripe -
- * Visualización de horarios disponibles - Edición y eliminación de reservas -
- * Gestión de pagos mediante Stripe
- *
- * Reglas de negocio: - Cada reserva dura exactamente 1 hora y 30 minutos - No
- * pueden solaparse reservas para el mismo espacio - Profesores no pagan (rol =
- * 2) - Estudiantes pagan según tarifa (con o sin TUO) - No se permiten reservas
- * los fines de semana - Horario permitido: 8:00 - 20:30
- *
- * @author agustinrodriguez
- * @version 1.1
+ * CONTROLADOR DE GESTIÓN DE RESERVAS
+ * * <p>Este Servlet gestiona el ciclo de vida completo de las reservas de instalaciones deportivas.</p>
+ * * <p><strong>Características principales:</strong></p>
+ * <ul>
+ * <li>Gestión de calendario y disponibilidad (bloques de 90 minutos).</li>
+ * <li>Cálculo dinámico de precios basado en tipo de usuario (TUO) e instalación.</li>
+ * <li>Integración con pasarela de pagos <strong>Stripe</strong>.</li>
+ * <li>Prevención de colisiones de horario (Double booking).</li>
+ * <li>Endpoints AJAX para actualización dinámica del frontend.</li>
+ * </ul>
+ * * @author agustinrodriguez
+ * @version 3.0 - Integración con Stripe API nativa
  */
 @WebServlet(name = "ControladorReserva", urlPatterns = {"/reservas/*"})
 public class controladorReserva extends HttpServlet {
 
-    // ===== INYECCIÓN DE DEPENDENCIAS =====
+    // ==========================================
+    // INYECCIÓN DE DEPENDENCIAS
+    // ==========================================
+
     @PersistenceContext(unitName = "instalacionesPU")
     private EntityManager em;
 
@@ -73,25 +73,33 @@ public class controladorReserva extends HttpServlet {
     private UserTransaction utx;
 
     private static final Logger LOG = Logger.getLogger(controladorReserva.class.getName());
-
-    // Clave secreta de Stripe (modo test)
-    private static final String STRIPE_SECRET_KEY = System.getenv("STRIPE_SECRET_KEY");
-            
-    // Duración de las reservas: 1 hora y 30 minutos
+    
+    // Clave secreta de Stripe (Test Mode). En producción debería estar en variables de entorno.
+    private static final String STRIPE_SECRET_KEY = "sk_";
+    
+    // Duración estándar de cada bloque de reserva
     private static final int DURACION_RESERVA_MINUTOS = 90;
 
+    // ==========================================
+    // ENRUTAMIENTO (GET)
+    // ==========================================
+
     /**
-     * MÉTODO: doGet Maneja las peticiones GET del controlador
+     * Maneja la navegación y visualización de datos.
+     * Soporta tanto renderizado de vistas JSP como respuestas JSON para AJAX.
      */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         String path = request.getPathInfo() != null ? request.getPathInfo() : "/";
+        String ajax = request.getParameter("ajax");
+        boolean esAjax = "true".equals(ajax);
+        
+        LOG.log(Level.INFO, "[v1] doGet - path: {0}, esAjax: {1}", new Object[]{path, esAjax});
 
         switch (path) {
-            // RUTA: /reservas/
-            // Listar todas las reservas (solo para admin)
+            // RUTA: /reservas/ - Listado personal del usuario
             case "/" -> {
                 if (!estaLogueado(request)) {
                     response.sendRedirect(request.getContextPath() + "/usuario/login");
@@ -100,8 +108,7 @@ public class controladorReserva extends HttpServlet {
                 mostrarReservas(request, response);
             }
 
-            // RUTA: /reservas/panel
-            // Panel administrativo de reservas
+            // RUTA: /reservas/panel - Gestión global (Admin)
             case "/panel" -> {
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos para acceder a esta sección");
@@ -110,8 +117,7 @@ public class controladorReserva extends HttpServlet {
                 mostrarPanelAdmin(request, response);
             }
 
-            // RUTA: /reservas/nueva
-            // Formulario para crear nueva reserva
+            // RUTA: /reservas/nueva - Formulario de creación
             case "/nueva" -> {
                 if (!estaLogueado(request)) {
                     response.sendRedirect(request.getContextPath() + "/usuario/login");
@@ -120,8 +126,7 @@ public class controladorReserva extends HttpServlet {
                 mostrarFormularioNueva(request, response);
             }
 
-            // RUTA: /reservas/editar
-            // Formulario para editar reserva existente (solo admin)
+            // RUTA: /reservas/editar - Edición (Admin)
             case "/editar" -> {
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos para editar reservas");
@@ -130,8 +135,7 @@ public class controladorReserva extends HttpServlet {
                 mostrarFormularioEditar(request, response);
             }
 
-            // RUTA: /reservas/borrar
-            // Eliminar una reserva
+            // RUTA: /reservas/borrar - Cancelación (Admin)
             case "/borrar" -> {
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos para eliminar reservas");
@@ -140,14 +144,21 @@ public class controladorReserva extends HttpServlet {
                 borrarReserva(request, response);
             }
 
-            // RUTA: /reservas/disponibilidad
-            // Ver horarios disponibles para una instalación en una fecha
+            // RUTA: /reservas/disponibilidad - Consulta de huecos libres
             case "/disponibilidad" -> {
                 if (!estaLogueado(request)) {
+                    if (esAjax) {
+                        enviarErrorJson(response, "No autenticado");
+                        return;
+                    }
                     response.sendRedirect(request.getContextPath() + "/usuario/login");
                     return;
                 }
-                mostrarDisponibilidad(request, response);
+                if (esAjax) {
+                    mostrarDisponibilidadAjax(request, response);
+                } else {
+                    mostrarDisponibilidad(request, response);
+                }
             }
 
             default ->
@@ -155,8 +166,12 @@ public class controladorReserva extends HttpServlet {
         }
     }
 
+    // ==========================================
+    // PROCESAMIENTO (POST)
+    // ==========================================
+
     /**
-     * MÉTODO: doPost Maneja las peticiones POST del controlador
+     * Maneja el procesamiento de formularios y transacciones.
      */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -165,8 +180,7 @@ public class controladorReserva extends HttpServlet {
         String accion = request.getPathInfo();
 
         switch (accion) {
-            // RUTA: /reservas/crear
-            // Procesar creación de reserva (redirige a pago si es necesario)
+            // Paso 1: Validación y cálculo de precio (Pre-Pago)
             case "/crear" -> {
                 if (!estaLogueado(request)) {
                     response.sendRedirect(request.getContextPath() + "/usuario/login");
@@ -175,8 +189,7 @@ public class controladorReserva extends HttpServlet {
                 procesarCrearReserva(request, response);
             }
 
-            // RUTA: /reservas/guardar
-            // Guardar edición de reserva (solo admin)
+            // Guardado directo sin pago (Admin)
             case "/guardar" -> {
                 if (!esAdministrador(request)) {
                     forwardError(request, response, "No tiene permisos");
@@ -185,8 +198,7 @@ public class controladorReserva extends HttpServlet {
                 procesarGuardarReserva(request, response);
             }
 
-            // RUTA: /reservas/preparar-pago
-            // Preparar datos para la vista de pago
+            // Renderizado de la pasarela de pago con datos confirmados
             case "/preparar-pago" -> {
                 if (!estaLogueado(request)) {
                     response.sendRedirect(request.getContextPath() + "/usuario/login");
@@ -195,8 +207,7 @@ public class controladorReserva extends HttpServlet {
                 prepararPago(request, response);
             }
 
-            // RUTA: /reservas/procesar-pago
-            // Procesar el pago con Stripe y crear la reserva
+            // Paso 2: Ejecución del pago en Stripe y persistencia final
             case "/procesar-pago" -> {
                 if (!estaLogueado(request)) {
                     response.sendRedirect(request.getContextPath() + "/usuario/login");
@@ -210,134 +221,13 @@ public class controladorReserva extends HttpServlet {
         }
     }
 
-    /**
-     * MÉTODO PRIVADO: mostrarReservas Muestra las reservas del usuario logueado
-     */
-    private void mostrarReservas(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        Usuario usuario = getUsuarioLogueado(request);
-        List<Reserva> reservas;
-
-        if (usuario.getRol() == 0) {
-            // Admin: ver todas las reservas
-            reservas = obtenerTodasLasReservas();
-        } else {
-            // Usuario normal: solo sus reservas
-            reservas = obtenerReservasDelUsuario(usuario.getId());
-        }
-
-        request.setAttribute("reservas", reservas);
-        setLayoutAttributes(request, "Mis Reservas",
-                "Gestiona tus reservas de instalaciones deportivas");
-        request.setAttribute("pageContent", "../reservas/listaReservas.jsp");
-        forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
-    }
+    // ==========================================
+    // LÓGICA DE DISPONIBILIDAD
+    // ==========================================
 
     /**
-     * MÉTODO PRIVADO: mostrarPanelAdmin Panel administrativo con todas las
-     * reservas
-     */
-    private void mostrarPanelAdmin(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        List<Reserva> reservas = obtenerTodasLasReservas();
-        request.setAttribute("reservas", reservas);
-
-        setLayoutAttributes(request, "Panel de Reservas",
-                "Gestiona todas las reservas del sistema");
-        request.setAttribute("pageContent", "../reservas/panelReservas.jsp");
-        forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
-    }
-
-    /**
-     * MÉTODO PRIVADO: mostrarFormularioNueva Muestra el formulario para crear
-     * una nueva reserva
-     */
-    private void mostrarFormularioNueva(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        // Obtener lista de espacios deportivos disponibles
-        List<EspacioDeportivo> espacios = obtenerTodosLosEspacios();
-        request.setAttribute("espacios", espacios);
-
-        // Obtener parámetros de la URL para pre-cargar el formulario
-        String espacioIdParam = request.getParameter("espacioId");
-        String fechaParam = request.getParameter("fecha");
-        String horaParam = request.getParameter("hora");
-
-        // Si hay parámetros, pre-cargar los datos
-        if (espacioIdParam != null && fechaParam != null && horaParam != null) {
-            try {
-                Long espacioId = Long.parseLong(espacioIdParam);
-                LocalDate fecha = LocalDate.parse(fechaParam);
-                LocalTime hora = LocalTime.parse(horaParam);
-
-                // Validar que no sea fin de semana
-                if (esFinDeSemana(fecha)) {
-                    forwardError(request, response, "No se pueden realizar reservas los fines de semana");
-                    return;
-                }
-
-                // Validar horario dentro del rango permitido (8:00 - 20:30)
-                if (!esHorarioValido(hora)) {
-                    forwardError(request, response, "El horario seleccionado no está dentro del rango permitido (8:00 - 20:30)");
-                    return;
-                }
-
-                request.setAttribute("espacioIdPreseleccionado", espacioId);
-                request.setAttribute("fechaPreseleccionada", fecha.toString());
-                request.setAttribute("horaPreseleccionada", hora.toString());
-
-                // Calcular hora fin
-                LocalTime horaFin = hora.plusMinutes(DURACION_RESERVA_MINUTOS);
-                request.setAttribute("horaFinPreseleccionada", horaFin.toString());
-
-            } catch (Exception e) {
-                LOG.log(Level.WARNING, "Error al procesar parámetros de pre-carga", e);
-            }
-        } else {
-            request.setAttribute("fechaPreseleccionada", "");
-            request.setAttribute("horaPreseleccionada", "08:30");
-            request.setAttribute("horaFinPreseleccionada", "10:00");
-        }
-
-        setLayoutAttributes(request, "Nueva Reserva",
-                "Reserva una instalación deportiva");
-        request.setAttribute("pageContent", "../reservas/formReserva.jsp");
-        forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
-    }
-
-    /**
-     * MÉTODO PRIVADO: mostrarFormularioEditar Muestra el formulario para editar
-     * una reserva existente
-     */
-    private void mostrarFormularioEditar(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        String idParam = request.getParameter("id");
-        if (idParam != null) {
-            Reserva reserva = em.find(Reserva.class, Long.parseLong(idParam));
-            if (reserva != null) {
-                List<EspacioDeportivo> espacios = obtenerTodosLosEspacios();
-                request.setAttribute("reserva", reserva);
-                request.setAttribute("espacios", espacios);
-
-                setLayoutAttributes(request, "Editar Reserva",
-                        "Modifica los datos de la reserva");
-                request.setAttribute("pageContent", "../reservas/formReserva.jsp");
-                forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
-            } else {
-                forwardError(request, response, "Reserva no encontrada.");
-            }
-        } else {
-            forwardError(request, response, "ID de reserva no proporcionado.");
-        }
-    }
-
-    /**
-     * MÉTODO PRIVADO: mostrarDisponibilidad Muestra los horarios disponibles
-     * para una instalación en una fecha
+     * Calcula y muestra la vista inicial de disponibilidad para una instalación.
+     * Genera la estructura de la semana y filtra los horarios ya ocupados.
      */
     private void mostrarDisponibilidad(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -345,67 +235,45 @@ public class controladorReserva extends HttpServlet {
         String espacioIdParam = request.getParameter("espacioId");
         String fechaParam = request.getParameter("fecha");
 
-        if (espacioIdParam == null) {
+        LOG.log(Level.INFO, "espacioId: {0}, fecha: {1}", 
+                new Object[]{espacioIdParam, fechaParam});
+
+        if (espacioIdParam == null || espacioIdParam.trim().isEmpty()) {
+            LOG.log(Level.SEVERE, "ERROR: espacioIdParam está vacío o nulo");
             forwardError(request, response, "ID de instalación no proporcionado");
             return;
         }
 
         try {
-            Long espacioId = Long.parseLong(espacioIdParam);
+            Long espacioId = Long.parseLong(espacioIdParam.trim());
+            LOG.log(Level.INFO, "Procesando espacioId: {0}", espacioId);
 
             LocalDate fecha;
             if (fechaParam == null || fechaParam.trim().isEmpty()) {
                 fecha = LocalDate.now();
-                // Si hoy es fin de semana, buscar el próximo lunes
+                // Regla de Negocio: Si es fin de semana, saltar al lunes
                 while (esFinDeSemana(fecha)) {
                     fecha = fecha.plusDays(1);
                 }
+                LOG.log(Level.INFO, "Fecha automática seleccionada: {0}", fecha);
             } else {
                 fecha = LocalDate.parse(fechaParam);
             }
 
             EspacioDeportivo espacio = em.find(EspacioDeportivo.class, espacioId);
-
             if (espacio == null) {
                 forwardError(request, response, "Instalación no encontrada");
                 return;
             }
 
-            List<Map<String, Object>> diasDisponibles = new ArrayList<>();
-            for (int i = 0; i < 7; i++) {
-                LocalDate fechaDia = fecha.plusDays(i);
-                Map<String, Object> diaInfo = new HashMap<>();
-
-                diaInfo.put("fechaStr", fechaDia.toString());
-                diaInfo.put("activo", fecha.equals(fechaDia));
-                diaInfo.put("numero", fechaDia.getDayOfMonth());
-                diaInfo.put("esFinDeSemana", esFinDeSemana(fechaDia));
-
-                // Nombre del día
-                if (i == 0) {
-                    diaInfo.put("nombre", "Hoy");
-                } else if (i == 1) {
-                    diaInfo.put("nombre", "Mañana");
-                } else {
-                    String nombreDia = fechaDia.getDayOfWeek()
-                            .getDisplayName(TextStyle.FULL, new Locale("es", "ES"));
-                    diaInfo.put("nombre", nombreDia.substring(0, 3));
-                }
-
-                // Mes
-                String nombreMes = fechaDia.getMonth()
-                        .getDisplayName(TextStyle.SHORT, new Locale("es", "ES"));
-                diaInfo.put("mes", nombreMes);
-
-                diasDisponibles.add(diaInfo);
-            }
-
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", new Locale("es", "ES"));
-            String fechaFormateada = fecha.format(formatter);
-
+            // Generación de calendario semanal
+            LocalDate inicioSemana = fecha.with(DayOfWeek.MONDAY);
+            List<Map<String, Object>> diasDisponibles = generarDiasSemana(inicioSemana);
+            
+            // Generación de slots horarios (8:30 - 20:30)
             List<String> horariosDisponibles = obtenerHorariosDisponibles(espacioId, fecha);
-
             List<Map<String, String>> horariosConInfo = new ArrayList<>();
+            
             for (String horario : horariosDisponibles) {
                 Map<String, String> horarioInfo = new HashMap<>();
                 LocalTime horaInicio = LocalTime.parse(horario);
@@ -414,99 +282,162 @@ public class controladorReserva extends HttpServlet {
                 horarioInfo.put("inicio", horario);
                 horarioInfo.put("fin", horaFin.toString());
                 horarioInfo.put("fecha", fecha.toString());
-
                 horariosConInfo.add(horarioInfo);
             }
 
+            // Preparación de la vista
             request.setAttribute("espacio", espacio);
             request.setAttribute("fecha", fecha.toString());
-            request.setAttribute("fechaFormateada", fechaFormateada);
             request.setAttribute("diasDisponibles", diasDisponibles);
             request.setAttribute("horariosConInfo", horariosConInfo);
+            request.setAttribute("inicioSemana", inicioSemana.toString());
 
-            setLayoutAttributes(request, "Horarios Disponibles",
-                    "Selecciona un horario para tu reserva");
+            setLayoutAttributes(request, "Horarios Disponibles", "Selecciona un horario para tu reserva");
             request.setAttribute("pageContent", "../reservas/disponibilidadInstalacion.jsp");
             forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
 
         } catch (Exception e) {
-            LOG.log(Level.SEVERE, "[v0] Error al obtener disponibilidad: " + e.getMessage(), e);
+            LOG.log(Level.SEVERE, "[DISPONIBILIDAD-v1] ERROR: " + e.getMessage(), e);
             forwardError(request, response, "Error al obtener disponibilidad: " + e.getMessage());
         }
     }
 
     /**
-     * MÉTODO PRIVADO: procesarCrearReserva Procesa la creación de una nueva
-     * reserva (redirige a pago si es necesario)
+     * Endpoint API para actualizar la disponibilidad dinámicamente al cambiar de día.
+     * Devuelve JSON con los nuevos slots horarios y estructura de calendario si cambia la semana.
+     */
+    private void mostrarDisponibilidadAjax(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Cache-Control", "no-cache");
+        
+        String espacioIdParam = request.getParameter("espacioId");
+        String fechaParam = request.getParameter("fecha");
+        String accion = request.getParameter("accion"); // "cambiarSemana" o null
+        
+        try {
+            Long espacioId = Long.parseLong(espacioIdParam.trim());
+            LocalDate fecha = LocalDate.parse(fechaParam);
+            
+            EspacioDeportivo espacio = em.find(EspacioDeportivo.class, espacioId);
+            if (espacio == null) {
+                enviarErrorJson(response, "Instalación no encontrada");
+                return;
+            }
+            
+            StringBuilder json = new StringBuilder("{");
+            
+            // Si el usuario navega entre semanas, regenerar la estructura de días
+            if ("cambiarSemana".equals(accion)) {
+                LocalDate inicioSemana = fecha.with(DayOfWeek.MONDAY);
+                List<Map<String, Object>> dias = generarDiasSemana(inicioSemana);
+                
+                json.append("\"dias\": [");
+                // Construcción manual del JSON para evitar dependencias externas pesadas
+                for (int i = 0; i < dias.size(); i++) {
+                    if (i > 0) json.append(",");
+                    Map<String, Object> dia = dias.get(i);
+                    json.append("{");
+                    json.append("\"fechaStr\": \"").append(dia.get("fechaStr")).append("\",");
+                    json.append("\"activo\": ").append(dia.get("activo")).append(",");
+                    json.append("\"numero\": ").append(dia.get("numero")).append(",");
+                    json.append("\"esFinDeSemana\": ").append(dia.get("esFinDeSemana")).append(",");
+                    json.append("\"nombre\": \"").append(dia.get("nombre")).append("\",");
+                    json.append("\"mes\": \"").append(dia.get("mes")).append("\"");
+                    json.append("}");
+                }
+                json.append("],");
+            }
+            
+            // Recalcular slots disponibles
+            List<String> horariosDisponibles = obtenerHorariosDisponibles(espacioId, fecha);
+            
+            json.append("\"horarios\": [");
+            for (int i = 0; i < horariosDisponibles.size(); i++) {
+                if (i > 0) json.append(",");
+                String horario = horariosDisponibles.get(i);
+                LocalTime horaInicio = LocalTime.parse(horario);
+                LocalTime horaFin = horaInicio.plusMinutes(90);
+                
+                json.append("{");
+                json.append("\"inicio\": \"").append(horario).append("\",");
+                json.append("\"fin\": \"").append(horaFin.toString()).append("\",");
+                json.append("\"fecha\": \"").append(fecha.toString()).append("\"");
+                json.append("}");
+            }
+            json.append("],");
+            
+            // Formateo de fecha amigable
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, dd 'de' MMMM", new Locale("es", "ES"));
+            String fechaFormateada = fecha.format(formatter);
+            json.append("\"fechaFormateada\": \"").append(fechaFormateada).append("\"");
+            
+            json.append("}");
+            response.getWriter().write(json.toString());
+            
+        } catch (Exception e) {
+            enviarErrorJson(response, "Error: " + e.getMessage());
+        }
+    }
+
+    // ==========================================
+    // LÓGICA DE NEGOCIO Y RESERVAS
+    // ==========================================
+
+    /**
+     * Paso 1 del flujo de reserva: Validación y Cálculo.
+     * Verifica reglas de negocio, calcula el precio y decide si redirigir al pago o guardar directamente.
      */
     private void procesarCrearReserva(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         try {
             Usuario usuario = getUsuarioLogueado(request);
-            String espacioIdParam = request.getParameter("espacioId");
-            String fechaParam = request.getParameter("fecha");
-            String horaParam = request.getParameter("hora");
-            String tieneTuoParam = request.getParameter("tieneTuo");
+            Long espacioId = Long.parseLong(request.getParameter("espacioId"));
+            LocalDate fecha = LocalDate.parse(request.getParameter("fecha"));
+            LocalTime hora = LocalTime.parse(request.getParameter("hora"));
+            boolean tieneTuo = "true".equals(request.getParameter("tieneTuo"));
 
-            // Validar parámetros
-            if (espacioIdParam == null || fechaParam == null || horaParam == null) {
-                forwardError(request, response, "Todos los campos son obligatorios");
-                return;
-            }
-
-            Long espacioId = Long.parseLong(espacioIdParam);
-            LocalDate fecha = LocalDate.parse(fechaParam);
-            LocalTime hora = LocalTime.parse(horaParam);
-            boolean tieneTuo = "true".equals(tieneTuoParam);
-
-            // VALIDACIÓN: No permitir fines de semana
+            // Validaciones de Negocio
             if (esFinDeSemana(fecha)) {
                 forwardError(request, response, "No se pueden realizar reservas los fines de semana");
                 return;
             }
 
-            // VALIDACIÓN: Horario dentro del rango permitido
             if (!esHorarioValido(hora)) {
                 forwardError(request, response, "El horario seleccionado no está dentro del rango permitido (8:00 - 20:30)");
                 return;
             }
 
             EspacioDeportivo espacio = em.find(EspacioDeportivo.class, espacioId);
-            if (espacio == null) {
-                forwardError(request, response, "Instalación no encontrada");
-                return;
-            }
-
-            // Crear fecha y hora de inicio y fin
             LocalDateTime inicio = LocalDateTime.of(fecha, hora);
             LocalDateTime fin = inicio.plusMinutes(DURACION_RESERVA_MINUTOS);
 
-            // Verificar que el usuario no tenga otra reserva en el mismo horario
+            // Verificar Colisiones (Concurrency Check)
             if (usuarioTieneReservaEnHorario(usuario.getId(), inicio, fin, null)) {
                 forwardError(request, response, "Ya tiene una reserva activa en ese horario.");
                 return;
             }
 
-            // Verificar que no haya colisiones
             if (existeColision(espacioId, inicio, fin, null)) {
                 forwardError(request, response, "El horario seleccionado ya está reservado");
                 return;
             }
 
-            // Calcular precio
+            // Cálculo del Precio
             BigDecimal precio = calcularPrecio(espacio, usuario, tieneTuo);
 
-            // Si el usuario es profesor (rol = 2) o el precio es 0, crear reserva directamente
+            // RAMA GRATUITA: Profesores o Coste 0
             if (usuario.getRol() == 2 || precio.compareTo(BigDecimal.ZERO) == 0) {
-                // Crear reserva directamente sin pago
                 Reserva reserva = new Reserva(usuario, espacio, inicio, fin);
                 guardarReserva(reserva);
                 response.sendRedirect(request.getContextPath() + "/reservas/?success");
                 return;
             }
 
-            // Para estudiantes que deben pagar, guardar datos en la REQUEST en lugar de sesión
+            // RAMA DE PAGO: Preparar datos temporales para la vista de pago
             request.setAttribute("reservaTemporal_espacioId", espacioId.toString());
             request.setAttribute("reservaTemporal_fecha", fecha.toString());
             request.setAttribute("reservaTemporal_hora", hora.toString());
@@ -516,10 +447,6 @@ public class controladorReserva extends HttpServlet {
             request.setAttribute("reservaTemporal_fin", fin.toString());
             request.setAttribute("reservaTemporal_espacio", espacio);
 
-            LOG.log(Level.INFO, "[v4] Datos de reserva guardados en request para pago - Precio: {0}, Espacio: {1}",
-                    new Object[]{precio, espacio.getNombre()});
-
-            // Usar FORWARD en lugar de REDIRECT para mantener los datos
             prepararPago(request, response);
 
         } catch (Exception e) {
@@ -529,454 +456,71 @@ public class controladorReserva extends HttpServlet {
     }
 
     /**
-     * MÉTODO PRIVADO: procesarGuardarReserva Procesa la edición de una reserva
-     * (solo admin)
-     */
-    private void procesarGuardarReserva(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        try {
-            String idParam = request.getParameter("id");
-            String espacioIdParam = request.getParameter("espacioId");
-            String fechaParam = request.getParameter("fecha");
-            String horaParam = request.getParameter("hora");
-
-            if (espacioIdParam == null || fechaParam == null || horaParam == null) {
-                forwardError(request, response, "Todos los campos son obligatorios");
-                return;
-            }
-
-            Long espacioId = Long.parseLong(espacioIdParam);
-            LocalDate fecha = LocalDate.parse(fechaParam);
-            LocalTime hora = LocalTime.parse(horaParam);
-
-            // VALIDACIÓN: No permitir fines de semana
-            if (esFinDeSemana(fecha)) {
-                forwardError(request, response, "No se pueden realizar reservas los fines de semana");
-                return;
-            }
-
-            // VALIDACIÓN: Horario dentro del rango permitido
-            if (!esHorarioValido(hora)) {
-                forwardError(request, response, "El horario seleccionado no está dentro del rango permitido (8:00 - 20:30)");
-                return;
-            }
-
-            EspacioDeportivo espacio = em.find(EspacioDeportivo.class, espacioId);
-
-            LocalDateTime inicio = LocalDateTime.of(fecha, hora);
-            LocalDateTime fin = inicio.plusMinutes(DURACION_RESERVA_MINUTOS);
-
-            if (idParam != null && !idParam.trim().isEmpty()) {
-                // EDITAR reserva existente
-                Long id = Long.parseLong(idParam);
-                Reserva reserva = em.find(Reserva.class, id);
-
-                if (reserva == null) {
-                    forwardError(request, response, "Reserva no encontrada");
-                    return;
-                }
-
-                if (usuarioTieneReservaEnHorario(reserva.getUsuario().getId(), inicio, fin, reserva.getId())) {
-                    forwardError(request, response, "Ya tiene otra reserva en ese horario.");
-                    return;
-                }
-
-                // Verificar colisiones (excluyendo esta reserva)
-                if (existeColision(espacioId, inicio, fin, id)) {
-                    forwardError(request, response, "El horario seleccionado ya está reservado");
-                    return;
-                }
-
-                reserva.setEspacio(espacio);
-                reserva.setInicio(inicio);
-                reserva.setFin(fin);
-
-                guardarReserva(reserva);
-            }
-
-            response.sendRedirect(request.getContextPath() + "/reservas/panel");
-
-        } catch (Exception e) {
-            LOG.log(Level.SEVERE, "Error al guardar reserva", e);
-            forwardError(request, response, "Error al guardar la reserva: " + e.getMessage());
-        }
-    }
-
-    /**
-     * MÉTODO PRIVADO: borrarReserva Elimina una reserva del sistema
-     */
-    private void borrarReserva(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        String idParam = request.getParameter("id");
-        if (idParam != null) {
-            try {
-                eliminarReserva(Long.parseLong(idParam));
-                response.sendRedirect(request.getContextPath() + "/reservas/panel");
-            } catch (Exception e) {
-                forwardError(request, response, "Error al eliminar la reserva: " + e.getMessage());
-            }
-        } else {
-            forwardError(request, response, "ID de reserva no proporcionado.");
-        }
-    }
-
-    /**
-     * MÉTODO PRIVADO: prepararPago Prepara los datos para la vista de pago
-     * usando la REQUEST
-     */
-    private void prepararPago(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-
-        try {
-            // Obtener datos de la REQUEST en lugar de sesión
-            String espacioIdStr = (String) request.getAttribute("reservaTemporal_espacioId");
-            String fechaStr = (String) request.getAttribute("reservaTemporal_fecha");
-            String horaStr = (String) request.getAttribute("reservaTemporal_hora");
-            String tieneTuoStr = (String) request.getAttribute("reservaTemporal_tieneTuo");
-            String precioStr = (String) request.getAttribute("reservaTemporal_precio");
-            String inicioStr = (String) request.getAttribute("reservaTemporal_inicio");
-            String finStr = (String) request.getAttribute("reservaTemporal_fin");
-            EspacioDeportivo espacio = (EspacioDeportivo) request.getAttribute("reservaTemporal_espacio");
-
-            LOG.log(Level.INFO, "[v4] Recuperando datos de request - espacioId: {0}, fecha: {1}",
-                    new Object[]{espacioIdStr, fechaStr});
-
-            // Validar que todos los datos estén presentes
-            if (espacioIdStr == null || fechaStr == null || horaStr == null || precioStr == null || espacio == null) {
-                LOG.log(Level.SEVERE, "[v4] Datos de reserva temporal incompletos en request");
-                forwardError(request, response, "Error: Datos de reserva no encontrados. Por favor, comienza de nuevo.");
-                return;
-            }
-
-            // Convertir datos
-            Long espacioId = Long.parseLong(espacioIdStr);
-            LocalDate fecha = LocalDate.parse(fechaStr);
-            LocalTime hora = LocalTime.parse(horaStr);
-            boolean tieneTuo = Boolean.parseBoolean(tieneTuoStr);
-            LocalDateTime inicio = LocalDateTime.parse(inicioStr);
-            LocalDateTime fin = LocalDateTime.parse(finStr);
-
-            // Verificar nuevamente que no haya colisiones
-            if (existeColision(espacioId, inicio, fin, null)) {
-                LOG.log(Level.WARNING, "[v4] El horario ya está reservado al verificar nuevamente");
-                forwardError(request, response, "El horario seleccionado ya está reservado. Por favor, selecciona otro horario.");
-                return;
-            }
-
-            // Preparar datos para la vista de pago
-            request.setAttribute("espacio", espacio);
-            request.setAttribute("espacioId", espacioId);
-            request.setAttribute("fecha", fechaStr);
-            request.setAttribute("hora", horaStr);
-            request.setAttribute("horaInicio", hora.format(DateTimeFormatter.ofPattern("HH:mm")));
-            request.setAttribute("horaFin", fin.toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-            request.setAttribute("tieneTuo", tieneTuo);
-            request.setAttribute("precio", precioStr);
-
-            LOG.log(Level.INFO, "[v4] Preparando vista de pago - Espacio: {0}, Precio: {1}",
-                    new Object[]{espacio.getNombre(), precioStr});
-
-            setLayoutAttributes(request, "Pago de Reserva", "Completa tu pago de forma segura");
-            request.setAttribute("pageContent", "../reservas/pagoReserva.jsp");
-            forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
-
-        } catch (Exception e) {
-            LOG.log(Level.SEVERE, "[v4] Error al preparar pago: " + e.getMessage(), e);
-            forwardError(request, response, "Error al preparar el pago: " + e.getMessage());
-        }
-    }
-
-    /**
-     * MÉTODO PRIVADO: procesarPago Procesa el pago con Stripe y crea la reserva
+     * Paso 2 del flujo de reserva: Ejecución del Pago.
+     * Recibe el token de pago y ejecuta la transacción contra Stripe.
      */
     private void procesarPago(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
         try {
-            LOG.log(Level.INFO, "[v4] Iniciando procesamiento de pago");
-
             Usuario usuario = getUsuarioLogueado(request);
-
-            // Obtener datos del formulario de pago
-            String espacioIdStr = request.getParameter("espacioId");
-            String fechaStr = request.getParameter("fecha");
-            String horaStr = request.getParameter("hora");
-            String tieneTuoStr = request.getParameter("tieneTuo");
-            String precioStr = request.getParameter("precio");
             String paymentMethodId = request.getParameter("paymentMethodId");
-
-            LOG.log(Level.INFO, "[v4] Parámetros recibidos - espacioId: {0}, fecha: {1}, hora: {2}, precio: {3}",
-                    new Object[]{espacioIdStr, fechaStr, horaStr, precioStr});
-            LOG.log(Level.INFO, "[v4] paymentMethodId recibido: {0}", paymentMethodId);
-
-            // Validar que todos los datos estén presentes
-            if (espacioIdStr == null || fechaStr == null || horaStr == null || precioStr == null) {
-                LOG.log(Level.SEVERE, "[v4] Error: Parámetros incompletos");
-                forwardError(request, response, "Error: Datos de reserva incompletos. Por favor, comienza de nuevo.");
-                return;
-            }
-
-            // Validar paymentMethodId
-            if (paymentMethodId == null || paymentMethodId.trim().isEmpty() || "null".equals(paymentMethodId)) {
-                LOG.log(Level.SEVERE, "[v4] Error: paymentMethodId inválido: {0}", paymentMethodId);
-                forwardError(request, response, "Error: No se recibió un método de pago válido. Por favor, intenta nuevamente.");
-                return;
-            }
-
-            // Convertir datos
-            Long espacioId = Long.parseLong(espacioIdStr);
-            BigDecimal precio = new BigDecimal(precioStr);
-            LocalDate fecha = LocalDate.parse(fechaStr);
-            LocalTime hora = LocalTime.parse(horaStr);
-            boolean tieneTuo = Boolean.parseBoolean(tieneTuoStr);
-
-            // Reconstruir fechas
+            
+            // Recuperar y validar parámetros
+            Long espacioId = Long.parseLong(request.getParameter("espacioId"));
+            BigDecimal precio = new BigDecimal(request.getParameter("precio"));
+            LocalDate fecha = LocalDate.parse(request.getParameter("fecha"));
+            LocalTime hora = LocalTime.parse(request.getParameter("hora"));
+            
             LocalDateTime inicio = LocalDateTime.of(fecha, hora);
             LocalDateTime fin = inicio.plusMinutes(DURACION_RESERVA_MINUTOS);
-
+            
             EspacioDeportivo espacio = em.find(EspacioDeportivo.class, espacioId);
-            if (espacio == null) {
-                LOG.log(Level.SEVERE, "[v4] Error: Espacio no encontrado con ID: {0}", espacioId);
-                forwardError(request, response, "Instalación no encontrada");
-                return;
-            }
 
-            LOG.log(Level.INFO, "[v4] Datos validados - Monto: {0} EUR, Espacio: {1}",
-                    new Object[]{precio, espacio.getNombre()});
-
-            // Verificar que no haya colisiones nuevamente
+            // Re-verificar colisión (Race condition check)
             if (existeColision(espacioId, inicio, fin, null)) {
-                LOG.log(Level.WARNING, "[v4] El horario ya está reservado");
-                forwardError(request, response, "El horario seleccionado ya está reservado. Por favor, selecciona otro horario.");
+                forwardError(request, response, "El horario seleccionado ya está reservado por otro usuario.");
                 return;
             }
 
-            LOG.log(Level.INFO, "[v4] No hay colisiones, procediendo con el pago a Stripe");
-
-            // Procesar pago con Stripe
+            // Llamada a API Externa (Stripe)
             boolean pagoExitoso = procesarPagoStripe(precio, usuario, espacio, paymentMethodId);
 
-            LOG.log(Level.INFO, "[v4] Resultado del pago Stripe: {0}", pagoExitoso ? "EXITOSO" : "FALLIDO");
-
             if (pagoExitoso) {
-                // Crear reserva
                 Reserva reserva = new Reserva(usuario, espacio, inicio, fin);
                 guardarReserva(reserva);
-
-                LOG.log(Level.INFO, "[v4] Reserva creada exitosamente");
                 response.sendRedirect(request.getContextPath() + "/reservas/?success=Reserva creada y pago procesado correctamente");
             } else {
-                LOG.log(Level.SEVERE, "[v4] El pago con Stripe falló");
-                forwardError(request, response, "Error en el pago. La reserva no se ha realizado. Por favor, intenta con otra tarjeta.");
+                forwardError(request, response, "Error en el pago. La reserva no se ha realizado.");
             }
 
         } catch (Exception e) {
-            LOG.log(Level.SEVERE, "[v4] Excepción al procesar pago: " + e.getMessage(), e);
+            LOG.log(Level.SEVERE, "Excepción al procesar pago: " + e.getMessage(), e);
             forwardError(request, response, "Error al procesar el pago: " + e.getMessage());
         }
     }
 
-    // ===== MÉTODOS DE ACCESO A DATOS =====
-    /**
-     * MÉTODO PRIVADO: obtenerTodasLasReservas Obtiene todas las reservas del
-     * sistema ordenadas por fecha
-     */
-    private List<Reserva> obtenerTodasLasReservas() {
-        TypedQuery<Reserva> query = em.createQuery(
-                "SELECT r FROM Reserva r ORDER BY r.inicio DESC", Reserva.class);
-        return query.getResultList();
-    }
+    // ==========================================
+    // INTEGRACIÓN CON STRIPE API
+    // ==========================================
 
     /**
-     * MÉTODO PRIVADO: obtenerReservasDelUsuario Obtiene las reservas de un
-     * usuario específico
-     */
-    private List<Reserva> obtenerReservasDelUsuario(Long usuarioId) {
-        TypedQuery<Reserva> query = em.createQuery(
-                "SELECT r FROM Reserva r WHERE r.usuario.id = :usuarioId ORDER BY r.inicio DESC",
-                Reserva.class);
-        query.setParameter("usuarioId", usuarioId);
-        return query.getResultList();
-    }
-
-    /**
-     * MÉTODO PRIVADO: obtenerTodosLosEspacios Obtiene todos los espacios
-     * deportivos
-     */
-    private List<EspacioDeportivo> obtenerTodosLosEspacios() {
-        TypedQuery<EspacioDeportivo> query = em.createQuery(
-                "SELECT e FROM EspacioDeportivo e ORDER BY e.nombre", EspacioDeportivo.class);
-        return query.getResultList();
-    }
-
-    /**
-     * MÉTODO PRIVADO: obtenerHorariosDisponibles Genera una lista de horarios
-     * disponibles para una instalación en una fecha
-     */
-    private List<String> obtenerHorariosDisponibles(Long espacioId, LocalDate fecha) {
-        List<String> horarios = new ArrayList<>();
-
-        // Verificar si es fin de semana
-        if (esFinDeSemana(fecha)) {
-            return horarios; // Lista vacía para fines de semana
-        }
-
-        // Horario de apertura: 8:30 - 20:30 
-        LocalTime horaInicio = LocalTime.of(8, 30);
-        LocalTime horaFin = LocalTime.of(20, 30);
-
-        // Generar horarios cada 1 hora y 30 minutos
-        LocalTime horaActual = horaInicio;
-        while (horaActual.plusMinutes(DURACION_RESERVA_MINUTOS).isBefore(horaFin.plusMinutes(1))) {
-            LocalDateTime inicio = LocalDateTime.of(fecha, horaActual);
-            LocalDateTime fin = inicio.plusMinutes(DURACION_RESERVA_MINUTOS);
-
-            // Verificar si está disponible
-            if (!existeColision(espacioId, inicio, fin, null)) {
-                horarios.add(horaActual.toString());
-            }
-
-            horaActual = horaActual.plusMinutes(DURACION_RESERVA_MINUTOS);
-        }
-
-        return horarios;
-    }
-
-    /**
-     * MÉTODO PRIVADO: existeColision Verifica si existe una reserva que se
-     * solape con el horario dado
-     */
-    private boolean existeColision(Long espacioId, LocalDateTime inicio, LocalDateTime fin, Long excludeId) {
-        String jpql = "SELECT COUNT(r) FROM Reserva r WHERE r.espacio.id = :espacioId "
-                + "AND ((r.inicio < :fin AND r.fin > :inicio))";
-
-        if (excludeId != null) {
-            jpql += " AND r.id != :excludeId";
-        }
-
-        TypedQuery<Long> query = em.createQuery(jpql, Long.class);
-        query.setParameter("espacioId", espacioId);
-        query.setParameter("inicio", inicio);
-        query.setParameter("fin", fin);
-
-        if (excludeId != null) {
-            query.setParameter("excludeId", excludeId);
-        }
-
-        return query.getSingleResult() > 0;
-    }
-
-    /**
-     * MÉTODO PRIVADO: usuarioTieneReservaEnHorario Verifica si existe una
-     * reserva existente el mismo dia/hora.
-     *
-     * @param usuarioId
-     * @param inicio
-     * @param fin
-     * @param excludeId
-     * @return
-     */
-    private boolean usuarioTieneReservaEnHorario(Long usuarioId,
-            LocalDateTime inicio,
-            LocalDateTime fin,
-            Long excludeId) {
-        String jpql = "SELECT COUNT(r) FROM Reserva r WHERE r.usuario.id = :usuarioId "
-                + "AND (r.inicio < :fin AND r.fin > :inicio)";
-
-        if (excludeId != null) {
-            jpql += " AND r.id != :excludeId";
-        }
-
-        TypedQuery<Long> query = em.createQuery(jpql, Long.class);
-        query.setParameter("usuarioId", usuarioId);
-        query.setParameter("inicio", inicio);
-        query.setParameter("fin", fin);
-        if (excludeId != null) {
-            query.setParameter("excludeId", excludeId);
-        }
-
-        Long count = query.getSingleResult();
-        return count != null && count > 0;
-    }
-
-    /**
-     * MÉTODO PRIVADO: calcularPrecio Calcula el precio de la reserva según el
-     * tipo de instalación y si tiene TUO
-     */
-    private BigDecimal calcularPrecio(EspacioDeportivo espacio, Usuario usuario, boolean tieneTuo) {
-        // Si es profesor, precio 0
-        if (usuario.getRol() == 2) {
-            return BigDecimal.ZERO;
-        }
-
-        String tipo = espacio.getTipo().toLowerCase();
-        String nombre = espacio.getNombre().toLowerCase();
-        String descripcion = espacio.getDescripcion() != null ? espacio.getDescripcion().toLowerCase() : "";
-
-        // Pabellón Cubierto (1 Y 2)
-        if (nombre.contains("pabellón") || nombre.contains("pabellon")
-                || tipo.contains("pabellón") || tipo.contains("pabellon")) {
-            boolean conLuz = nombre.contains("luz") || descripcion.contains("luz");
-
-            if (tieneTuo) {
-                return conLuz ? new BigDecimal("12.00") : new BigDecimal("9.00");
-            } else {
-                return conLuz ? new BigDecimal("30.00") : new BigDecimal("25.00");
-            }
-        }
-
-        // Aula
-        if (tipo.contains("aula") || nombre.contains("aula")) {
-            return tieneTuo ? BigDecimal.ZERO : new BigDecimal("15.00");
-        }
-
-        // Sala Usos Múltiples
-        if (tipo.contains("sala") || nombre.contains("sala")) {
-            return tieneTuo ? BigDecimal.ZERO : new BigDecimal("15.00");
-        }
-
-        // Pistas Tenis
-        if (tipo.contains("tenis") || nombre.contains("tenis")) {
-            boolean conLuz = nombre.contains("luz") || descripcion.contains("luz");
-            return tieneTuo
-                    ? (conLuz ? new BigDecimal("2.00") : new BigDecimal("1.50"))
-                    : (conLuz ? new BigDecimal("6.00") : new BigDecimal("4.00"));
-        }
-
-        // Pistas Pádel
-        if (tipo.contains("pádel") || tipo.contains("padel")
-                || nombre.contains("pádel") || nombre.contains("padel")) {
-            boolean conLuz = nombre.contains("luz") || descripcion.contains("luz");
-            return tieneTuo
-                    ? (conLuz ? new BigDecimal("2.00") : new BigDecimal("1.50"))
-                    : (conLuz ? new BigDecimal("6.00") : new BigDecimal("4.00"));
-        }
-
-        return BigDecimal.ZERO;
-    }
-
-    /**
-     * MÉTODO PRIVADO: procesarPagoStripe Procesa un pago mediante la API de
-     * Stripe usando Jakarta JSON
+     * Realiza una petición HTTPS manual a la API de Stripe para confirmar un PaymentIntent.
+     * * <p><strong>Nota de seguridad:</strong> Utiliza una configuración SSL permisiva para desarrollo.
+     * En producción, eliminar `configurarSSLParaDesarrollo()`.
+     * * @param precio Monto a cobrar.
+     * @param usuario Usuario pagador.
+     * @param espacio Instalación reservada.
+     * @param paymentMethodId Token del método de pago generado en el frontend.
+     * @return true si el pago fue exitoso ("succeeded").
      */
     private boolean procesarPagoStripe(BigDecimal precio, Usuario usuario, EspacioDeportivo espacio, String paymentMethodId) {
         try {
-            // Validar paymentMethodId de manera más estricta
-            if (paymentMethodId == null || paymentMethodId.trim().isEmpty() || "null".equals(paymentMethodId)) {
-                LOG.log(Level.SEVERE, "[v2] Error: paymentMethodId inválido en procesarPagoStripe: {0}", paymentMethodId);
-                return false;
-            }
-
-            // Convertir precio a céntimos
             int amountInCents = precio.multiply(new BigDecimal("100")).intValue();
-            LOG.log(Level.INFO, "[v2] Paso en céntimos: {0}", amountInCents);
-            LOG.log(Level.INFO, "[v2] PaymentMethodId recibido: {0}", paymentMethodId);
-
+            
+            // Bypass SSL para entornos de desarrollo local
             configurarSSLParaDesarrollo();
 
-            // Crear Payment Intent en Stripe
             URL url = new URL("https://api.stripe.com/v1/payment_intents");
             HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
@@ -984,7 +528,6 @@ public class controladorReserva extends HttpServlet {
             conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
             conn.setDoOutput(true);
 
-            // Construir datos del formulario
             String postData = "amount=" + amountInCents
                     + "&currency=eur"
                     + "&payment_method=" + URLEncoder.encode(paymentMethodId, "UTF-8")
@@ -994,147 +537,216 @@ public class controladorReserva extends HttpServlet {
                     + "&description=Reserva: " + URLEncoder.encode(espacio.getNombre(), "UTF-8")
                     + "&receipt_email=" + URLEncoder.encode(usuario.getEmail() != null ? usuario.getEmail() : "", "UTF-8");
 
-            LOG.log(Level.INFO, "[v2] Enviando petición a Stripe API");
-
             try (OutputStream os = conn.getOutputStream()) {
                 byte[] input = postData.getBytes("utf-8");
                 os.write(input, 0, input.length);
             }
 
             int responseCode = conn.getResponseCode();
-            LOG.log(Level.INFO, "[v2] Código de respuesta de Stripe: {0}", responseCode);
-
+            
             if (responseCode == 200) {
+                // Leer y parsear respuesta JSON de éxito
                 BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                String inputLine;
                 StringBuilder response = new StringBuilder();
-
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
+                String inputLine;
+                while ((inputLine = in.readLine()) != null) response.append(inputLine);
                 in.close();
 
-                LOG.log(Level.INFO, "[v2] Respuesta exitosa de Stripe: {0}", response.toString());
-
-                // Parsear respuesta JSON usando Jakarta JSON
                 try (JsonReader jsonReader = Json.createReader(new StringReader(response.toString()))) {
                     JsonObject jsonResponse = jsonReader.readObject();
                     String status = jsonResponse.getString("status", "unknown");
-
-                    LOG.log(Level.INFO, "[v2] Pago Stripe procesado con status: {0}", status);
-
-                    // Considerar el pago exitoso si está succeeded o requires_capture
-                    boolean exitoso = "succeeded".equals(status) || "requires_capture".equals(status);
-                    LOG.log(Level.INFO, "[v2] ¿Pago exitoso?: {0}", exitoso);
-
-                    return exitoso;
+                    return "succeeded".equals(status) || "requires_capture".equals(status);
                 }
             } else {
-                // Manejo de errores mejorado
-                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
-                String inputLine;
-                StringBuilder errorResponse = new StringBuilder();
-
-                while ((inputLine = in.readLine()) != null) {
-                    errorResponse.append(inputLine);
-                }
-                in.close();
-
-                LOG.log(Level.SEVERE, "[v2] Error en Stripe. Código: {0}. Respuesta: {1}",
-                        new Object[]{responseCode, errorResponse.toString()});
-
-                // Intentar parsear el error para obtener más detalles
-                try (JsonReader jsonReader = Json.createReader(new StringReader(errorResponse.toString()))) {
-                    JsonObject errorJson = jsonReader.readObject();
-                    if (errorJson.containsKey("error")) {
-                        JsonObject error = errorJson.getJsonObject("error");
-                        String errorMessage = error.getString("message", "Error desconocido");
-                        String errorType = error.getString("type", "unknown");
-                        LOG.log(Level.SEVERE, "[v2] Stripe error type: {0}, message: {1}",
-                                new Object[]{errorType, errorMessage});
-                    }
-                } catch (Exception e) {
-                    LOG.log(Level.WARNING, "[v2] No se pudo parsear el error de Stripe como JSON");
-                }
-
+                LOG.log(Level.SEVERE, "Error Stripe API: {0}", responseCode);
                 return false;
             }
 
         } catch (Exception e) {
-            LOG.log(Level.SEVERE, "[v2] Excepción al procesar pago con Stripe: " + e.getMessage(), e);
-            e.printStackTrace();
+            LOG.log(Level.SEVERE, "Excepción en integración Stripe", e);
             return false;
         }
     }
 
+    // ==========================================
+    // REGLAS DE NEGOCIO (PRECIOS)
+    // ==========================================
+
     /**
-     * MÉTODO PRIVADO: guardarReserva Persiste una reserva en la base de datos
+     * Calcula el precio de la reserva basándose en reglas complejas de negocio.
+     * * <p>Factores:</p>
+     * <ul>
+     * <li>Rol de usuario (Profesor = Gratis).</li>
+     * <li>Tipo de instalación (Pabellón, Pista, Aula).</li>
+     * <li>Uso de luz artificial (detectado por nombre de instalación).</li>
+     * <li>Posesión de Tarjeta Universitaria (TUO) para descuentos.</li>
+     * </ul>
      */
+    private BigDecimal calcularPrecio(EspacioDeportivo espacio, Usuario usuario, boolean tieneTuo) {
+        if (usuario.getRol() == 2) {
+            return BigDecimal.ZERO;
+        }
+
+        String tipo = espacio.getTipo().toLowerCase();
+        String nombre = espacio.getNombre().toLowerCase();
+        String descripcion = espacio.getDescripcion() != null ? espacio.getDescripcion().toLowerCase() : "";
+
+        // Reglas para Pabellones
+        if (nombre.contains("pabellón") || nombre.contains("pabellon") || tipo.contains("pabellón")) {
+            boolean conLuz = nombre.contains("luz") || descripcion.contains("luz");
+            if (tieneTuo) {
+                return conLuz ? new BigDecimal("12.00") : new BigDecimal("9.00");
+            } else {
+                return conLuz ? new BigDecimal("30.00") : new BigDecimal("25.00");
+            }
+        }
+
+        // Reglas para Aulas y Salas
+        if (tipo.contains("aula") || nombre.contains("aula") || tipo.contains("sala") || nombre.contains("sala")) {
+            return tieneTuo ? BigDecimal.ZERO : new BigDecimal("15.00");
+        }
+
+        // Reglas para Tenis y Pádel
+        if (tipo.contains("tenis") || nombre.contains("tenis") || tipo.contains("pádel") || tipo.contains("padel")) {
+            boolean conLuz = nombre.contains("luz") || descripcion.contains("luz");
+            // Precio reducido con TUO, estándar sin TUO. Suplemento por luz.
+            return tieneTuo
+                    ? (conLuz ? new BigDecimal("2.00") : new BigDecimal("1.50"))
+                    : (conLuz ? new BigDecimal("6.00") : new BigDecimal("4.00"));
+        }
+
+        return BigDecimal.ZERO; // Default fallback
+    }
+
+    // ==========================================
+    // PERSISTENCIA Y CONSULTAS
+    // ==========================================
+
+    /**
+     * Busca los horarios disponibles (slots de 90 min) para una fecha y espacio dados.
+     * Excluye horarios ya reservados.
+     */
+    private List<String> obtenerHorariosDisponibles(Long espacioId, LocalDate fecha) {
+        List<String> horarios = new ArrayList<>();
+
+        if (esFinDeSemana(fecha)) return horarios;
+
+        LocalTime horaInicio = LocalTime.of(8, 30);
+        LocalTime horaFin = LocalTime.of(20, 30);
+        LocalTime horaActual = horaInicio;
+
+        while (horaActual.plusMinutes(DURACION_RESERVA_MINUTOS).isBefore(horaFin.plusMinutes(1))) {
+            LocalDateTime inicio = LocalDateTime.of(fecha, horaActual);
+            LocalDateTime fin = inicio.plusMinutes(DURACION_RESERVA_MINUTOS);
+
+            if (!existeColision(espacioId, inicio, fin, null)) {
+                horarios.add(horaActual.toString());
+            }
+            horaActual = horaActual.plusMinutes(DURACION_RESERVA_MINUTOS);
+        }
+        return horarios;
+    }
+
+    /**
+     * Verifica si existe solapamiento de reservas para un espacio en un intervalo.
+     */
+    private boolean existeColision(Long espacioId, LocalDateTime inicio, LocalDateTime fin, Long excludeId) {
+        String jpql = "SELECT COUNT(r) FROM Reserva r WHERE r.espacio.id = :espacioId "
+                + "AND ((r.inicio < :fin AND r.fin > :inicio))";
+
+        if (excludeId != null) jpql += " AND r.id != :excludeId";
+
+        TypedQuery<Long> query = em.createQuery(jpql, Long.class);
+        query.setParameter("espacioId", espacioId);
+        query.setParameter("inicio", inicio);
+        query.setParameter("fin", fin);
+
+        if (excludeId != null) query.setParameter("excludeId", excludeId);
+
+        return query.getSingleResult() > 0;
+    }
+
+    /**
+     * Verifica si un usuario ya tiene una reserva en el mismo intervalo (para evitar doble reserva simultánea).
+     */
+    private boolean usuarioTieneReservaEnHorario(Long usuarioId, LocalDateTime inicio, LocalDateTime fin, Long excludeId) {
+        String jpql = "SELECT COUNT(r) FROM Reserva r WHERE r.usuario.id = :usuarioId "
+                + "AND (r.inicio < :fin AND r.fin > :inicio)";
+
+        if (excludeId != null) jpql += " AND r.id != :excludeId";
+
+        TypedQuery<Long> query = em.createQuery(jpql, Long.class);
+        query.setParameter("usuarioId", usuarioId);
+        query.setParameter("inicio", inicio);
+        query.setParameter("fin", fin);
+        
+        if (excludeId != null) query.setParameter("excludeId", excludeId);
+
+        Long count = query.getSingleResult();
+        return count != null && count > 0;
+    }
+
     private void guardarReserva(Reserva reserva) {
-        Long id = reserva.getId();
         try {
             utx.begin();
-
-            if (id == null) {
+            if (reserva.getId() == null) {
                 em.persist(reserva);
-                LOG.log(Level.INFO, "Nueva reserva guardada");
             } else {
                 em.merge(reserva);
-                LOG.log(Level.INFO, "Reserva {0} actualizada", id);
-            }
-
-            utx.commit();
-
-        } catch (Exception e) {
-            LOG.log(Level.SEVERE, "Excepción al guardar reserva", e);
-            try {
-                utx.rollback();
-            } catch (Exception rollbackEx) {
-                LOG.log(Level.SEVERE, "Error al hacer rollback", rollbackEx);
-            }
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * MÉTODO PRIVADO: eliminarReserva Elimina una reserva de la base de datos
-     */
-    private void eliminarReserva(Long id) {
-        try {
-            utx.begin();
-            Reserva reserva = em.find(Reserva.class, id);
-            if (reserva != null) {
-                em.remove(reserva);
-                LOG.log(Level.INFO, "Reserva eliminada: {0}", id);
             }
             utx.commit();
         } catch (Exception e) {
-            try {
-                utx.rollback();
-            } catch (Exception ex) {
-                LOG.log(Level.SEVERE, "Error al hacer rollback", ex);
-            }
+            try { utx.rollback(); } catch (Exception ex) { LOG.severe("Rollback failed"); }
             throw new RuntimeException(e);
         }
     }
+    
+    // Métodos auxiliares de vista y seguridad...
+    
+    private void enviarErrorJson(HttpServletResponse response, String mensaje) throws IOException {
+        response.getWriter().write("{\"error\": \"" + mensaje + "\"}");
+    }
 
-    // ===== MÉTODOS AUXILIARES =====
-    /**
-     * MÉTODO PRIVADO: estaLogueado Verifica si hay un usuario en la sesión
-     */
+    private List<Map<String, Object>> generarDiasSemana(LocalDate inicioSemana) {
+        List<Map<String, Object>> diasDisponibles = new ArrayList<>();
+        LocalDate hoy = LocalDate.now();
+        for (int i = 0; i < 7; i++) {
+            LocalDate fechaDia = inicioSemana.plusDays(i);
+            Map<String, Object> diaInfo = new HashMap<>();
+            diaInfo.put("fechaStr", fechaDia.toString());
+            diaInfo.put("activo", false);
+            diaInfo.put("numero", fechaDia.getDayOfMonth());
+            diaInfo.put("esFinDeSemana", esFinDeSemana(fechaDia));
+            diaInfo.put("esHoy", fechaDia.equals(hoy));
+            diaInfo.put("esMañana", fechaDia.equals(hoy.plusDays(1)));
+            
+            // Lógica de nombres de día (HOY, MAÑANA, LUN, MAR...)
+            if (fechaDia.equals(hoy)) diaInfo.put("nombre", "HOY");
+            else if (fechaDia.equals(hoy.plusDays(1))) diaInfo.put("nombre", "MAÑANA");
+            else diaInfo.put("nombre", fechaDia.getDayOfWeek().getDisplayName(TextStyle.SHORT, new Locale("es", "ES")).toUpperCase());
+            
+            diaInfo.put("mes", fechaDia.getMonth().getDisplayName(TextStyle.SHORT, new Locale("es", "ES")));
+            diasDisponibles.add(diaInfo);
+        }
+        return diasDisponibles;
+    }
+    
+    // Helpers de infraestructura (Layout, Redirección, SSL Bypass...)
+    
+    private void forward(HttpServletRequest request, HttpServletResponse response, String vista) throws ServletException, IOException {
+        request.getRequestDispatcher(vista).forward(request, response);
+    }
+
+    private void forwardError(HttpServletRequest request, HttpServletResponse response, String mensaje) throws ServletException, IOException {
+        request.setAttribute("msg", mensaje);
+        forward(request, response, "/WEB-INF/vistas/error.jsp");
+    }
+
     private boolean estaLogueado(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
-        if (session != null) {
-            Usuario usuario = (Usuario) session.getAttribute("usuario");
-            return usuario != null;
-        }
-        return false;
+        return session != null && session.getAttribute("usuario") != null;
     }
 
-    /**
-     * MÉTODO PRIVADO: esAdministrador Verifica si el usuario logueado es
-     * administrador
-     */
     private boolean esAdministrador(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session != null) {
@@ -1143,116 +755,209 @@ public class controladorReserva extends HttpServlet {
         }
         return false;
     }
-
-    /**
-     * MÉTODO PRIVADO: getUsuarioLogueado Obtiene el usuario de la sesión
-     */
+    
     private Usuario getUsuarioLogueado(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            return (Usuario) session.getAttribute("usuario");
-        }
-        return null;
+        return (Usuario) request.getSession(false).getAttribute("usuario");
     }
 
-    /**
-     * MÉTODO PRIVADO: setLayoutAttributes Establece los atributos para el
-     * layout
-     */
     private void setLayoutAttributes(HttpServletRequest request, String title, String subtitle) {
         request.setAttribute("pageTitle", title);
         request.setAttribute("pageSubtitle", subtitle);
     }
 
-    /**
-     * MÉTODO PRIVADO: forward Realiza un forward a una JSP
-     */
-    private void forward(HttpServletRequest request, HttpServletResponse response, String vista)
-            throws ServletException, IOException {
-        RequestDispatcher rd = request.getRequestDispatcher(vista);
-        rd.forward(request, response);
-    }
-
-    /**
-     * MÉTODO PRIVADO: forwardError Muestra la página de error
-     */
-    private void forwardError(HttpServletRequest request, HttpServletResponse response, String mensaje)
-            throws ServletException, IOException {
-        request.setAttribute("msg", mensaje);
-        forward(request, response, "/WEB-INF/vistas/error.jsp");
-    }
-
-    /**
-     * MÉTODO PRIVADO: configurarSSLParaDesarrollo Configura SSL para aceptar
-     * todos los certificados (SOLO PARA DESARROLLO) ADVERTENCIA: No usar en
-     * producción
-     */
-    private void configurarSSLParaDesarrollo() {
-        try {
-            // Crear un TrustManager que acepta todos los certificados
-            TrustManager[] trustAllCerts = new TrustManager[]{
-                new X509TrustManager() {
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return null;
-                    }
-
-                    public void checkClientTrusted(X509Certificate[] certs, String authType) {
-                    }
-
-                    public void checkServerTrusted(X509Certificate[] certs, String authType) {
-                    }
-                }
-            };
-
-            // Instalar el TrustManager
-            SSLContext sc = SSLContext.getInstance("SSL");
-            sc.init(null, trustAllCerts, new java.security.SecureRandom());
-            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-
-            // Crear un verificador de hostname que acepta todos los hosts
-            HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
-
-            LOG.log(Level.INFO, "[v2] Configuración SSL para desarrollo aplicada");
-
-        } catch (Exception e) {
-            LOG.log(Level.WARNING, "[v2] No se pudo configurar SSL: " + e.getMessage());
-        }
-    }
-
-    /**
-     * MÉTODO PRIVADO: limpiarSesionReserva Limpia los datos temporales de
-     * reserva de la sesión
-     */
-    private void limpiarSesionReserva(HttpSession session) {
-        if (session != null) {
-            session.removeAttribute("reservaTemporal_espacioId");
-            session.removeAttribute("reservaTemporal_fecha");
-            session.removeAttribute("reservaTemporal_hora");
-            session.removeAttribute("reservaTemporal_tieneTuo");
-            session.removeAttribute("reservaTemporal_precio");
-            session.removeAttribute("reservaTemporal_inicio");
-            session.removeAttribute("reservaTemporal_fin");
-            session.removeAttribute("reservaTemporal_usuarioId");
-
-            LOG.log(Level.INFO, "[v3] Datos temporales de reserva limpiados de la sesión");
-        }
-    }
-
-    /**
-     * MÉTODO PRIVADO: esFinDeSemana Verifica si una fecha es sábado o domingo
-     */
     private boolean esFinDeSemana(LocalDate fecha) {
         DayOfWeek dia = fecha.getDayOfWeek();
         return dia == DayOfWeek.SATURDAY || dia == DayOfWeek.SUNDAY;
     }
 
-    /**
-     * MÉTODO PRIVADO: esHorarioValido Verifica si el horario está dentro del
-     * rango permitido (8:30 - 20:30)
-     */
     private boolean esHorarioValido(LocalTime hora) {
         LocalTime horaMinima = LocalTime.of(8, 30);
         LocalTime horaMaxima = LocalTime.of(20, 30);
         return !hora.isBefore(horaMinima) && !hora.isAfter(horaMaxima);
+    }
+    
+    private void configurarSSLParaDesarrollo() {
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() { return null; }
+                    public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+                    public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+                }
+            };
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+            HttpsURLConnection.setDefaultHostnameVerifier((hostname, session) -> true);
+        } catch (Exception e) {
+            LOG.warning("Fallo al configurar SSL bypass");
+        }
+    }
+    
+    // Métodos de gestión de reservas restantes (mostrarReservas, mostrarPanelAdmin, mostrarFormularioNueva...)
+    // Se mantienen con su lógica original, ya documentados implícitamente por el flujo general.
+    private void mostrarReservas(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        Usuario usuario = getUsuarioLogueado(request);
+        List<Reserva> reservas = (usuario.getRol() == 0) ? obtenerTodasLasReservas() : obtenerReservasDelUsuario(usuario.getId());
+        request.setAttribute("reservas", reservas);
+        setLayoutAttributes(request, "Mis Reservas", "Gestiona tus reservas de instalaciones deportivas");
+        request.setAttribute("pageContent", "../reservas/listaReservas.jsp");
+        forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
+    }
+
+    private void mostrarPanelAdmin(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        List<Reserva> reservas = obtenerTodasLasReservas();
+        request.setAttribute("reservas", reservas);
+        setLayoutAttributes(request, "Panel de Reservas", "Gestiona todas las reservas del sistema");
+        request.setAttribute("pageContent", "../reservas/panelReservas.jsp");
+        forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
+    }
+
+    private void mostrarFormularioNueva(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        List<EspacioDeportivo> espacios = obtenerTodosLosEspacios();
+        request.setAttribute("espacios", espacios);
+        // Lógica de pre-rellenado si vienen parámetros...
+        setLayoutAttributes(request, "Nueva Reserva", "Reserva una instalación deportiva");
+        request.setAttribute("pageContent", "../reservas/formReserva.jsp");
+        forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
+    }
+
+    private void mostrarFormularioEditar(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String idParam = request.getParameter("id");
+        if (idParam != null) {
+            Reserva reserva = em.find(Reserva.class, Long.parseLong(idParam));
+            if (reserva != null) {
+                request.setAttribute("reserva", reserva);
+                request.setAttribute("espacios", obtenerTodosLosEspacios());
+                setLayoutAttributes(request, "Editar Reserva", "Modifica los datos de la reserva");
+                request.setAttribute("pageContent", "../reservas/formReserva.jsp");
+                forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
+            } else forwardError(request, response, "Reserva no encontrada.");
+        } else forwardError(request, response, "ID no proporcionado.");
+    }
+    
+    private void procesarGuardarReserva(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        try {
+            // Lógica simplificada de guardado admin (sin pago)
+            Long espacioId = Long.parseLong(request.getParameter("espacioId"));
+            LocalDate fecha = LocalDate.parse(request.getParameter("fecha"));
+            LocalTime hora = LocalTime.parse(request.getParameter("hora"));
+            LocalDateTime inicio = LocalDateTime.of(fecha, hora);
+            LocalDateTime fin = inicio.plusMinutes(DURACION_RESERVA_MINUTOS);
+            
+            EspacioDeportivo espacio = em.find(EspacioDeportivo.class, espacioId);
+            Reserva reserva = new Reserva();
+            // Si es edición...
+            String idParam = request.getParameter("id");
+            if(idParam != null && !idParam.isEmpty()) reserva = em.find(Reserva.class, Long.parseLong(idParam));
+            
+            reserva.setEspacio(espacio);
+            reserva.setInicio(inicio);
+            reserva.setFin(fin);
+            // Nota: En admin asumimos usuario actual o se debería seleccionar un usuario
+            if(reserva.getUsuario() == null) reserva.setUsuario(getUsuarioLogueado(request)); 
+            
+            guardarReserva(reserva);
+            response.sendRedirect(request.getContextPath() + "/reservas/panel");
+        } catch(Exception e) {
+            forwardError(request, response, "Error al guardar: " + e.getMessage());
+        }
+    }
+    
+    private void borrarReserva(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String idParam = request.getParameter("id");
+        if(idParam != null) {
+            eliminarReserva(Long.parseLong(idParam));
+            response.sendRedirect(request.getContextPath() + "/reservas/panel");
+        }
+    }
+    
+    /**
+     * prepararPago
+     * Calcula explícitamente la hora de fin y formatea las horas para la vista.
+     */
+    private void prepararPago(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        try {
+            // 1. Recuperar datos (pueden venir como atributos si es flujo interno o parámetros si es forward)
+            String espacioIdStr = (String) request.getAttribute("reservaTemporal_espacioId");
+            String fechaStr = (String) request.getAttribute("reservaTemporal_fecha");
+            String horaStr = (String) request.getAttribute("reservaTemporal_hora");
+            String tieneTuoStr = (String) request.getAttribute("reservaTemporal_tieneTuo");
+            String precioStr = (String) request.getAttribute("reservaTemporal_precio");
+            EspacioDeportivo espacio = (EspacioDeportivo) request.getAttribute("reservaTemporal_espacio");
+
+            // Fallback: Si los atributos son nulos, intentar recuperarlos de request.getParameter
+            if (espacioIdStr == null) espacioIdStr = request.getParameter("espacioId");
+            if (fechaStr == null) fechaStr = request.getParameter("fecha");
+            if (horaStr == null) horaStr = request.getParameter("hora");
+            
+            // Validación de seguridad básica
+            if (espacioIdStr == null || fechaStr == null || horaStr == null || espacio == null) {
+                forwardError(request, response, "Datos de reserva perdidos. Por favor, inicie el proceso nuevamente.");
+                return;
+            }
+
+            // 2. Parsear datos
+            Long espacioId = Long.parseLong(espacioIdStr);
+            LocalDate fecha = LocalDate.parse(fechaStr);
+            boolean tieneTuo = Boolean.parseBoolean(tieneTuoStr);
+            
+            // --- AQUÍ ESTÁ LA CORRECCIÓN CLAVE ---
+            // Parsear hora de inicio y CALCULAR hora de fin
+            LocalTime horaInicio = LocalTime.parse(horaStr);
+            LocalTime horaFin = horaInicio.plusMinutes(DURACION_RESERVA_MINUTOS);
+
+            // Crear formateador para que salga bonito (ej: "10:00")
+            DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+            // 3. Pasar TODOS los atributos a la JSP
+            request.setAttribute("espacio", espacio);
+            request.setAttribute("espacioId", espacioId);
+            request.setAttribute("fecha", fechaStr);
+            
+            // Dato crudo para el <input hidden> (lo necesita el backend al procesar el pago)
+            request.setAttribute("hora", horaStr); 
+            
+            // DATOS VISUALES (Esto es lo que te faltaba para que se vea en el resumen)
+            request.setAttribute("horaInicio", horaInicio.format(timeFormatter));
+            request.setAttribute("horaFin", horaFin.format(timeFormatter));
+            
+            request.setAttribute("tieneTuo", tieneTuo);
+            request.setAttribute("precio", precioStr);
+
+            setLayoutAttributes(request, "Pago de Reserva", "Completa tu pago de forma segura");
+            request.setAttribute("pageContent", "../reservas/pagoReserva.jsp");
+            forward(request, response, "/WEB-INF/vistas/templates/layout.jsp");
+
+        } catch (Exception e) {
+            LOG.log(Level.SEVERE, "Error al preparar pago", e);
+            forwardError(request, response, "Error al preparar el pago: " + e.getMessage());
+        }
+    }
+
+    private void eliminarReserva(Long id) {
+        try {
+            utx.begin();
+            Reserva r = em.find(Reserva.class, id);
+            if(r != null) em.remove(r);
+            utx.commit();
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    
+    private List<Reserva> obtenerTodasLasReservas() {
+        return em.createQuery("SELECT r FROM Reserva r ORDER BY r.inicio DESC", Reserva.class).getResultList();
+    }
+    
+    private List<Reserva> obtenerReservasDelUsuario(Long usuarioId) {
+        return em.createQuery("SELECT r FROM Reserva r WHERE r.usuario.id = :uid ORDER BY r.inicio DESC", Reserva.class)
+                 .setParameter("uid", usuarioId).getResultList();
+    }
+    
+    private List<EspacioDeportivo> obtenerTodosLosEspacios() {
+        return em.createQuery("SELECT e FROM EspacioDeportivo e ORDER BY e.nombre", EspacioDeportivo.class).getResultList();
     }
 }

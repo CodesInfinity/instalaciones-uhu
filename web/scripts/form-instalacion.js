@@ -1,134 +1,139 @@
 /**
- * SCRIPT: FORMULARIO DE INSTALACIÓN
- *
- * Contiene toda la lógica del lado del cliente para el formulario de instalaciones:
- * - Contador de caracteres
- * - Preview de imagen
- * - Validaciones
- * - Interacciones con el usuario
- *
- * @author agustinrodriguez
+ * @fileoverview LÓGICA DEL FORMULARIO DE INSTALACIÓN
+ * * Este script gestiona la interacción del lado del cliente para el formulario
+ * de creación y edición de instalaciones.
+ * * Funcionalidades principales:
+ * - Feedback visual en tiempo real (contador de caracteres).
+ * - Previsualización de imágenes antes de la subida (FileReader API).
+ * - Validación estricta de campos requeridos antes del envío.
+ * - Sistema de notificaciones tipo "Toast" para errores y avisos.
+ * * @author agustinrodriguez
+ * @version 1.0.0
  */
 
-// Ejecutar cuando el documento esté completamente cargado
+// Inicialización del script cuando el DOM está listo
 document.addEventListener("DOMContentLoaded", () => {
-  initializeForm()
-})
+  initializeForm();
+});
 
 /**
- * FUNCIÓN: initializeForm
- * Inicializa todos los eventos y funcionalidades del formulario
+ * Función orquestadora principal.
+ * Inicializa todos los subsistemas del formulario (contadores y validaciones).
  */
 function initializeForm() {
-  // Inicializar contador de caracteres
-  initializeCharacterCounter()
+  // Inicializar contador de caracteres para el textarea
+  initializeCharacterCounter();
 
-  // Inicializar evento de validación
-  initializeFormValidation()
+  // Configurar los listeners para la validación del envío
+  initializeFormValidation();
 }
 
 /**
- * FUNCIÓN: initializeCharacterCounter
- * Configura el contador de caracteres para la descripción
+ * Configura la lógica de conteo de caracteres para el campo de descripción.
+ * Proporciona feedback visual en tiempo real al usuario.
+ * * Comportamiento:
+ * - Actualiza el contador formato "X/500".
+ * - Añade la clase 'text-danger' si se supera el límite permitido.
  */
 function initializeCharacterCounter() {
-  const descripcion = document.getElementById("descripcion")
-  const contador = document.getElementById("contadorCaracteres")
+  const descripcion = document.getElementById("descripcion");
+  const contador = document.getElementById("contadorCaracteres");
 
   if (descripcion && contador) {
-    // Actualizar contador al escribir
+    // Evento input: Se dispara cada vez que el usuario escribe o borra
     descripcion.addEventListener("input", function () {
-      const length = this.value.length
-      contador.textContent = length + "/500"
+      const length = this.value.length;
+      contador.textContent = length + "/500";
 
-      // Cambiar color si se excede el límite
+      // Validación visual: Cambiar color si excede el límite
       if (length > 500) {
-        contador.classList.add("text-danger")
+        contador.classList.add("text-danger");
       } else {
-        contador.classList.remove("text-danger")
+        contador.classList.remove("text-danger");
       }
-    })
+    });
 
-    // Inicializar valor del contador
-    contador.textContent = descripcion.value.length + "/500"
+    // Inicialización: Establecer valor inicial al cargar la página (para ediciones)
+    contador.textContent = descripcion.value.length + "/500";
   }
 }
 
 /**
- * FUNCIÓN: initializeFormValidation
- * Configura validaciones del formulario
+ * Establece las reglas de validación que bloquean el envío del formulario.
+ * Previene el comportamiento por defecto (submit) si no se cumplen las condiciones.
  */
 function initializeFormValidation() {
-  const form = document.getElementById("formInstalacion")
+  const form = document.getElementById("formInstalacion");
 
   if (form) {
     form.addEventListener("submit", (e) => {
-      // Validar campos obligatorios
-      const nombre = document.getElementById("nombre").value.trim()
-      const tipo = document.getElementById("tipo").value
-      const ubicacion = document.getElementById("ubicacion").value.trim()
-      const descripcion = document.getElementById("descripcion").value
+      // Captura y limpieza de valores
+      const nombre = document.getElementById("nombre").value.trim();
+      const tipo = document.getElementById("tipo").value;
+      const ubicacion = document.getElementById("ubicacion").value.trim();
+      const descripcion = document.getElementById("descripcion").value;
 
-      // Si falta algún campo requerido, prevenir envío
+      // Regla 1: Validar campos obligatorios
       if (!nombre || !tipo || !ubicacion) {
-        e.preventDefault()
-        showAlert("Por favor, complete todos los campos obligatorios (*)", "error")
-        return false
+        e.preventDefault(); // Detiene el envío
+        showAlert("Por favor, complete todos los campos obligatorios (*)", "error");
+        return false;
       }
 
-      // Si la descripción excede 500 caracteres, prevenir envío
+      // Regla 2: Validar longitud máxima de la descripción
       if (descripcion.length > 500) {
-        e.preventDefault()
-        showAlert("La descripción no puede exceder los 500 caracteres", "error")
-        return false
+        e.preventDefault(); // Detiene el envío
+        showAlert("La descripción no puede exceder los 500 caracteres", "error");
+        return false;
       }
-    })
+    });
   }
 }
 
 /**
- * FUNCIÓN: previewImage
- * Muestra una vista previa de la imagen seleccionada
- *
- * @param input - El elemento input file
+ * Genera una vista previa de la imagen seleccionada por el usuario
+ * utilizando la API FileReader, evitando la necesidad de subirla al servidor primero.
+ * * Se invoca desde el evento 'onchange' del input file en el HTML.
+ * * @param {HTMLInputElement} input - El elemento <input type="file"> que disparó el evento.
  */
 function previewImage(input) {
-  const preview = document.getElementById("imagePreview")
+  const preview = document.getElementById("imagePreview");
 
-  // Verificar que haya archivos seleccionados
+  // Verificar que el usuario haya seleccionado al menos un archivo
   if (input.files && input.files[0]) {
-    const reader = new FileReader()
+    const reader = new FileReader();
 
-    // Cuando la imagen se haya leído
+    // Callback: Se ejecuta cuando la lectura del archivo termina con éxito
     reader.onload = (e) => {
-      // Buscar o crear elemento img
-      let img = preview.querySelector("img")
+      // Buscar imagen existente o crear una nueva si es la primera vez
+      let img = preview.querySelector("img");
       if (!img) {
-        img = document.createElement("img")
-        img.id = "previewImage"
-        preview.innerHTML = ""
-        preview.appendChild(img)
+        img = document.createElement("img");
+        img.id = "previewImage";
+        preview.innerHTML = ""; // Limpiar cualquier texto o placeholder previo
+        preview.appendChild(img);
       }
 
-      // Asignar la imagen leída como src
-      img.src = e.target.result
-      img.alt = "Vista previa"
-    }
+      // Asignar el resultado (base64) al src de la imagen
+      img.src = e.target.result;
+      img.alt = "Vista previa";
+    };
 
-    // Leer el archivo como Data URL
-    reader.readAsDataURL(input.files[0])
+    // Iniciar la lectura del archivo como Data URL
+    reader.readAsDataURL(input.files[0]);
   }
 }
 
 /**
- * FUNCIÓN: showAlert
- * Muestra un mensaje al usuario
- *
- * @param message - Mensaje a mostrar
- * @param type - Tipo: 'error', 'success', 'info'
+ * Muestra una notificación flotante (Toast) en la esquina superior derecha.
+ * Útil para feedback de éxito o error sin bloquear la interfaz.
+ * * @param {string} message - El texto a mostrar en la alerta.
+ * @param {('error'|'success'|'info')} [type="info"] - El tipo de alerta, determina el color de fondo.
  */
 function showAlert(message, type = "info") {
-  const alertDiv = document.createElement("div")
+  const alertDiv = document.createElement("div");
+  
+  // Estilos in-line para garantizar la visualización independiente del CSS externo
   alertDiv.style.cssText = `
         position: fixed;
         top: 20px;
@@ -140,15 +145,15 @@ function showAlert(message, type = "info") {
         z-index: 10000;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         font-weight: 600;
-    `
-  alertDiv.textContent = message
+    `;
+  alertDiv.textContent = message;
 
-  document.body.appendChild(alertDiv)
+  document.body.appendChild(alertDiv);
 
-  // Remover el alert después de 3 segundos
+  // Auto-destrucción del elemento después de 3 segundos
   setTimeout(() => {
     if (document.body.contains(alertDiv)) {
-      document.body.removeChild(alertDiv)
+      document.body.removeChild(alertDiv);
     }
-  }, 3000)
+  }, 3000);
 }

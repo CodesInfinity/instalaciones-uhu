@@ -4,52 +4,79 @@ import jakarta.persistence.*;
 import java.util.Objects;
 
 /**
- * MODELO: ESPACIO DEPORTIVO
- * 
- * Representa una instalación deportiva en el sistema
- * Campos: nombre, tipo, ubicación, descripción, imagen
- * 
- * @author agustinrodriguez
- * @version 2.0 - Refactorizado y comentado
+ * ENTIDAD: ESPACIO DEPORTIVO
+ * * <p>Representa una instalación física o recurso deportivo gestionable en el sistema.
+ * Es la entidad principal sobre la que se realizan las {@link Reserva}.</p>
+ * * <p><strong>Atributos:</strong></p>
+ * <ul>
+ * <li><strong>Nombre:</strong> Identificador común (ej. "Pista Central").</li>
+ * <li><strong>Tipo:</strong> Categoría (ej. "Pista de Tenis", "Pabellón").</li>
+ * <li><strong>Imagen URL:</strong> Ruta relativa al recurso gráfico subido.</li>
+ * </ul>
+ * * @author agustinrodriguez
+ * @version 2.0
  */
 @Entity
 @Table(name = "espacios_deportivos")
 public class EspacioDeportivo {
     
-    // Identificador único autoincrementable
+    /**
+     * Identificador único de la instalación (Clave Primaria).
+     * Generado automáticamente.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    // Nombre de la instalación (máximo 100 caracteres, obligatorio)
+    /**
+     * Nombre comercial o identificativo de la instalación.
+     * Obligatorio, longitud máxima 100 caracteres.
+     */
     @Column(name = "nombre", length = 100, nullable = false)
     private String nombre;
     
-    // Tipo de instalación: Fútbol, Baloncesto, Tenis, etc. (máximo 50 caracteres)
+    /**
+     * Categoría deportiva de la instalación.
+     * Utilizado para filtros y cálculos de precios (ej. 'Pabellón', 'Tenis').
+     */
     @Column(name = "tipo", length = 50, nullable = false)
     private String tipo;
     
-    // Ubicación de la instalación (máximo 150 caracteres)
+    /**
+     * Ubicación física dentro del campus o complejo.
+     * Ej: "Zona Norte", "Edificio C".
+     */
     @Column(name = "ubicacion", length = 150, nullable = false)
     private String ubicacion;
     
-    // Descripción detallada (máximo 500 caracteres)
+    /**
+     * Descripción detallada de las características (suelo, iluminación, aforo).
+     */
     @Column(name = "descripcion", length = 500)
     private String descripcion;
     
-    // URL de la imagen de la instalación
+    /**
+     * Ruta relativa de almacenamiento de la imagen representativa.
+     * Ej: "/img/instalaciones/temp/uuid.jpg".
+     */
     @Column(name = "imagen_url", length = 255)
     private String imagenUrl;
     
-    // ===== CONSTRUCTORES =====
+    // ==========================================
+    // CONSTRUCTORES
+    // ==========================================
     
     /**
-     * Constructor vacío (requerido por JPA)
+     * Constructor vacío requerido por JPA.
      */
     public EspacioDeportivo() {}
     
     /**
-     * Constructor con parámetros básicos
+     * Constructor para inicialización básica sin imagen.
+     * @param nombre Nombre de la instalación.
+     * @param tipo Categoría.
+     * @param ubicacion Localización física.
+     * @param descripcion Detalles adicionales.
      */
     public EspacioDeportivo(String nombre, String tipo, String ubicacion, String descripcion) {
         this.nombre = nombre;
@@ -59,7 +86,12 @@ public class EspacioDeportivo {
     }
     
     /**
-     * Constructor con todos los parámetros incluyendo imagen
+     * Constructor completo con recurso multimedia.
+     * @param nombre Nombre de la instalación.
+     * @param tipo Categoría.
+     * @param ubicacion Localización física.
+     * @param descripcion Detalles adicionales.
+     * @param imagenUrl Ruta relativa de la imagen.
      */
     public EspacioDeportivo(String nombre, String tipo, String ubicacion, String descripcion, String imagenUrl) {
         this.nombre = nombre;
@@ -69,7 +101,9 @@ public class EspacioDeportivo {
         this.imagenUrl = imagenUrl;
     }
     
-    // ===== GETTERS Y SETTERS =====
+    // ==========================================
+    // GETTERS Y SETTERS
+    // ==========================================
     
     public Long getId() { 
         return id; 
@@ -113,10 +147,14 @@ public class EspacioDeportivo {
         this.imagenUrl = imagenUrl; 
     }
     
-    // ===== MÉTODOS EQUALS Y HASHCODE =====
+    // ==========================================
+    // MÉTODOS OVERRIDE (JPA IDENTITY)
+    // ==========================================
     
     /**
-     * Compara dos espacios deportivos por su ID
+     * Compara la igualdad basándose únicamente en el ID de la base de datos.
+     * Esto asegura que dos objetos Java diferentes que refieren a la misma fila
+     * de base de datos se consideren iguales.
      */
     @Override
     public boolean equals(Object o) {
@@ -126,28 +164,17 @@ public class EspacioDeportivo {
         return Objects.equals(id, that.id);
     }
     
-    /**
-     * Genera un hash code basado en el ID
-     */
     @Override
     public int hashCode() {
         return Objects.hash(id);
     }
     
-    // ===== MÉTODO TOSTRING =====
-    
-    /**
-     * Representación en string del objeto para debugging
-     */
     @Override
     public String toString() {
         return "EspacioDeportivo{" +
                 "id=" + id +
                 ", nombre='" + nombre + '\'' +
                 ", tipo='" + tipo + '\'' +
-                ", ubicacion='" + ubicacion + '\'' +
-                ", descripcion='" + descripcion + '\'' +
-                ", imagenUrl='" + imagenUrl + '\'' +
                 '}';
     }
 }

@@ -1,13 +1,19 @@
 <%-- 
-    Document   : solicitudesProfesor
+    Document   : solicitudesProfesor.jsp
     Created on : 26 oct 2025, 0:39:41
     Author     : agustinrodriguez
+    Description: BANDEJA DE ENTRADA DE SOLICITUDES DE ROL
+                 Muestra las peticiones de usuarios que desean ascender a profesor.
+                 Permite al administrador Aprobar (cambiar rol a 2) o Rechazar.
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+
 <div class="panel-content">
+    
     <div class="table-container">
+        
         <div class="table-header">
             <div class="header-title-with-button">
                 <h2>Solicitudes de personal</h2>
@@ -38,6 +44,8 @@
         </c:if>
 
         <c:choose>
+            
+            <%-- CASO A: NO HAY SOLICITUDES (EMPTY STATE) --%>
             <c:when test="${empty solicitudes}">
                 <div class="empty-state">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,9 +58,12 @@
                     </a>
                 </div>
             </c:when>
+            
+            <%-- CASO B: LISTADO DE SOLICITUDES --%>
             <c:otherwise>
                 <div class="solicitudes-container">
                     <div class="solicitudes-grid">
+                        
                         <c:forEach var="solicitud" items="${solicitudes}">
                             <div class="solicitud-card">
                                 <div class="solicitud-header">
@@ -90,6 +101,7 @@
                                 </div>
                                 
                                 <div class="solicitud-actions">
+                                    
                                     <form action="${pageContext.request.contextPath}/usuario/aprobarSolicitud" method="post" style="display: contents;">
                                         <input type="hidden" name="usuarioId" value="${solicitud.id}">
                                         <button type="submit" class="btn-solicitud btn-solicitud-aprobar">
@@ -99,6 +111,7 @@
                                             Aprobar
                                         </button>
                                     </form>
+                                    
                                     <form action="${pageContext.request.contextPath}/usuario/rechazarSolicitud" method="post" style="display: contents;">
                                         <input type="hidden" name="usuarioId" value="${solicitud.id}">
                                         <button type="submit" class="btn-solicitud btn-solicitud-rechazar">
@@ -108,12 +121,15 @@
                                             Rechazar
                                         </button>
                                     </form>
+                                    
                                 </div>
                             </div>
                         </c:forEach>
+                        
                     </div>
                 </div>
             </c:otherwise>
         </c:choose>
+        
     </div>
 </div>

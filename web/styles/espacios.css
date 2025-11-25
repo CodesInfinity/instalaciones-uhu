@@ -1,8 +1,5 @@
 /* ============================================
-   MEJORAS PARA VISTAS DE INSTALACIONES
-   ============================================ */
-/* ============================================
-   INSTALACIONES - ESTILO COMPACTO TIPO RESERVAS
+   VARIABLES GLOBALES
    ============================================ */
 
 :root {
@@ -31,7 +28,7 @@
 }
 
 /* ============================================
-   LAYOUT COMPACTO
+   LAYOUT GENERAL
    ============================================ */
 
 .panel-body {
@@ -46,7 +43,7 @@
 }
 
 /* ============================================
-   HEADER COMPACTO
+   HEADER INSTALACIONES
    ============================================ */
 
 .instalaciones-header {
@@ -56,6 +53,12 @@
     margin-bottom: 24px;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--color-gray-200);
+
+    /* Layout título + botón */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
 }
 
 .header-content {
@@ -91,8 +94,13 @@
     line-height: 1.4;
 }
 
+/* Evitar que el botón se parta en varias líneas */
+.instalaciones-header .btn-primary {
+    white-space: nowrap;
+}
+
 /* ============================================
-   GRID DE INSTALACIONES - ESTILO RESERVAS
+   GRID DE INSTALACIONES (VISTA PÚBLICA)
    ============================================ */
 
 .instalaciones-grid {
@@ -115,9 +123,13 @@
 
 .instalacion-card:hover {
     transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
-/* Header compacto con imagen */
+/* ============================================
+   CARD HEADER CON IMAGEN
+   ============================================ */
+
 .card-header-with-image {
     position: relative;
     height: 160px;
@@ -173,7 +185,10 @@
     letter-spacing: 0.05em;
 }
 
-/* Header por defecto compacto */
+/* ============================================
+   CARD HEADER SIN IMAGEN
+   ============================================ */
+
 .card-header-default {
     background: linear-gradient(135deg, var(--color-uhu-red) 0%, var(--color-uhu-red-dark) 100%);
     height: 160px;
@@ -194,7 +209,10 @@
     background: rgba(0, 0, 0, 0.2);
 }
 
-/* Body compacto - Estilo tipo reservas */
+/* ============================================
+   CARD BODY
+   ============================================ */
+
 .card-body {
     padding: 16px;
 }
@@ -210,7 +228,7 @@
     overflow: hidden;
 }
 
-/* Info items compactos - Estilo reservas */
+/* Info items compactos */
 .info-item {
     display: flex;
     align-items: center;
@@ -219,7 +237,7 @@
     padding: 10px;
     background: var(--color-gray-50);
     border-radius: 6px;
-    border-left: 3px solid var(--color-uhu-red);
+    border: 1px solid var(--color-gray-200);
 }
 
 .info-item i {
@@ -235,7 +253,10 @@
     font-weight: 500;
 }
 
-/* Footer compacto - Estilo reservas */
+/* ============================================
+   CARD FOOTER
+   ============================================ */
+
 .card-footer {
     background: var(--color-gray-50);
     border-top: 1px solid var(--color-gray-200);
@@ -255,7 +276,7 @@
 }
 
 /* ============================================
-   BOTONES COMPACTOS - ESTILO RESERVAS
+   BOTONES GENERALES
    ============================================ */
 
 .btn {
@@ -293,11 +314,6 @@
     border-color: var(--color-uhu-red);
 }
 
-.btn-outline:hover {
-    background: var(--color-uhu-red);
-    color: #ffffff;
-}
-
 .btn-secondary {
     background: #ffffff;
     color: var(--color-gray-700);
@@ -320,7 +336,23 @@
     color: #ffffff;
 }
 
-/* Botones de acción pequeños */
+/* Variante btn-warning (por si la quieres usar como .btn) */
+.btn-warning {
+    background: #fbbf24;
+    color: #1f2937;
+    border-color: #f59e0b;
+}
+
+.btn-warning:hover {
+    background: #f59e0b;
+    border-color: #d97706;
+    color: #ffffff;
+}
+
+/* ============================================
+   BOTONES ICONO / ACCIÓN
+   ============================================ */
+
 .action-btn {
     width: 32px;
     height: 32px;
@@ -371,22 +403,44 @@
     font-size: 13px;
 }
 
+/* Estados base para los icon-buttons específicos */
+.btn-icon.btn-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.btn-icon.btn-danger {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+/* Para los botones de info en el panel admin */
+.btn-icon.btn-info {
+    background-color: #e0f2fe;
+    color: #0369a1;
+}
+
 .btn-icon:hover {
     transform: scale(1.05);
 }
 
 .btn-icon.btn-warning:hover {
-    background-color: #fef3c7;
+    background-color: #fde68a;
     color: #92400e;
 }
 
 .btn-icon.btn-danger:hover {
-    background-color: #fee2e2;
+    background-color: #fecaca;
     color: #dc2626;
 }
 
+.btn-icon.btn-info:hover {
+    background-color: #bae6fd;
+    color: #0369a1;
+}
+
 /* ============================================
-   DETALLE COMPACTO
+   DETALLE INSTALACIÓN
    ============================================ */
 
 .detalle-container {
@@ -403,7 +457,7 @@
     margin-bottom: 24px;
 }
 
-/* Header del detalle compacto */
+/* Header con imagen */
 .detalle-header-with-image {
     position: relative;
     height: 280px;
@@ -441,7 +495,7 @@
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
 }
 
-/* Header sin imagen compacto */
+/* Header sin imagen */
 .detalle-header {
     background: linear-gradient(135deg, var(--color-uhu-red) 0%, var(--color-uhu-red-dark) 100%);
     color: white;
@@ -464,7 +518,7 @@
     flex-wrap: wrap;
 }
 
-/* Body del detalle compacto */
+/* Body detalle */
 .detalle-body {
     padding: 24px;
 }
@@ -488,7 +542,7 @@
     padding: 16px;
     background: var(--color-gray-50);
     border-radius: var(--border-radius);
-    border-left: 3px solid var(--color-uhu-red);
+    border: 1px solid var(--color-gray-200);
     transition: var(--transition);
 }
 
@@ -532,7 +586,7 @@
     font-size: 14px;
 }
 
-/* Sección de disponibilidad compacta */
+/* Sección disponibilidad */
 .subtitle-disponibilidad {
     color: var(--color-text-secondary);
     font-size: 13px;
@@ -566,7 +620,7 @@
     text-decoration: underline;
 }
 
-/* Sidebar compacto */
+/* Sidebar detalle */
 .detalle-sidebar {
     display: flex;
     flex-direction: column;
@@ -615,7 +669,7 @@
 }
 
 /* ============================================
-   ESTADOS Y BADGES COMPACTOS
+   ESTADOS Y BADGES
    ============================================ */
 
 .estado-disponible,
@@ -650,7 +704,7 @@
     border: 1px solid #fecaca;
 }
 
-/* Badges de tipos compactos */
+/* Badges tipos de instalación */
 .badge-fútbol { background-color: var(--color-uhu-red-light); color: var(--color-uhu-red); border: 1px solid #fecaca; }
 .badge-baloncesto { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
 .badge-tenis { background-color: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; }
@@ -668,7 +722,7 @@
 }
 
 /* ============================================
-   COMPONENTES ADICIONALES COMPACTOS
+   PANELES ADICIONALES
    ============================================ */
 
 .admin-actions-panel {
@@ -703,8 +757,253 @@
     flex-wrap: wrap;
 }
 
+.panel-footer {
+    margin-top: 24px;
+    text-align: center;
+    color: var(--color-gray-500);
+    font-size: 12px;
+    padding: 16px;
+}
+
 /* ============================================
-   ESTADOS VACÍOS COMPACTOS
+   PANEL ADMIN INSTALACIONES
+   (stats, tabla y navegación rápida)
+   ============================================ */
+
+/* Tarjetas de estadísticas */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stats-card {
+    background: #ffffff;
+    border-radius: var(--border-radius-lg);
+    padding: 16px 18px;
+    border: 1px solid var(--color-gray-200);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+.stats-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0.08;
+    pointer-events: none;
+}
+
+.stats-primary::before {
+    background: linear-gradient(135deg, var(--color-uhu-red), var(--color-uhu-red-dark));
+}
+
+.stats-success::before {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.stats-info::before {
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+}
+
+.stats-content {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.stats-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stats-number {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.stats-label {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+.stats-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-gray-100);
+    color: var(--color-uhu-red);
+    font-size: 18px;
+}
+
+/* Tabla de instalaciones */
+
+.table-container {
+    background: #ffffff;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--color-gray-200);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+}
+
+.table-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--color-gray-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.table-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.table-stats {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.stat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+
+.table-content {
+    padding: 0 16px 16px 16px;
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.data-table thead {
+    background: var(--color-gray-50);
+}
+
+.data-table th,
+.data-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-gray-200);
+    vertical-align: middle;
+}
+
+.data-table th {
+    font-weight: 600;
+    color: var(--color-gray-700);
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.data-table tbody tr:nth-child(even) {
+    background: #fafafa;
+}
+
+.data-table tbody tr:hover {
+    background: #f3f4f6;
+}
+
+/* Celdas específicas de la tabla */
+
+.nombre-cell {
+    align-items: center;
+    gap: 6px;
+}
+
+.nombre-cell i {
+    font-size: 13px;
+}
+
+.descripcion-cell {
+    max-width: 280px;
+    color: var(--color-text-secondary);
+}
+
+.actions-column {
+    width: 150px;
+    text-align: center;
+}
+
+.actions-cell {
+    text-align: right;
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+/* Badges dentro de la tabla */
+
+.data-table td .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+}
+
+/* NAVEGACIÓN RÁPIDA */
+
+.quick-nav {
+    background: #ffffff;
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--color-gray-200);
+    box-shadow: var(--shadow-sm);
+    padding: 16px 20px;
+}
+
+.quick-nav-header h3 {
+    margin: 0 0 12px 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.quick-nav-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* ============================================
+   ESTADO VACÍO
    ============================================ */
 
 .empty-state {
@@ -744,7 +1043,133 @@
 }
 
 /* ============================================
-   RESPONSIVE DESIGN COMPACTO
+   UTILIDADES TEXTO
+   ============================================ */
+
+.text-danger { color: #dc2626 !important; }
+.text-muted { color: var(--color-gray-500) !important; }
+
+/* ============================================
+   MODAL (logout / confirmaciones)
+   ============================================ */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 32px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.modal-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-icon-warning {
+    background: #fef3c7;
+    color: #f59e0b;
+}
+
+.modal-icon i {
+    font-size: 28px;
+}
+
+.modal-header h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0 0 8px 0;
+}
+
+.modal-header p {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.modal-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.modal-btn-cancel {
+    background: #ffffff;
+    color: var(--color-gray-700);
+    border: 1px solid var(--color-gray-300);
+}
+
+.modal-btn-cancel:hover {
+    background: var(--color-gray-50);
+}
+
+.modal-btn-confirm {
+    background: var(--color-uhu-red);
+    color: #ffffff;
+}
+
+.modal-btn-confirm:hover {
+    background: var(--color-uhu-red-dark);
+}
+
+/* ============================================
+   RESPONSIVE
    ============================================ */
 
 @media (max-width: 1200px) {
@@ -758,6 +1183,21 @@
     }
 }
 
+@media (max-width: 900px) {
+    .instalaciones-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .instalaciones-header .btn-primary {
+        width: 100%;
+    }
+
+    .actions-column {
+        width: 120px;
+    }
+}
+
 @media (max-width: 768px) {
     .instalaciones-container {
         padding: 12px;
@@ -766,6 +1206,9 @@
     .instalaciones-header {
         padding: 20px;
         margin-bottom: 20px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
     }
     
     .instalaciones-grid {
@@ -823,6 +1266,52 @@
     .admin-actions {
         justify-content: center;
     }
+
+    .instalaciones-header .btn-primary {
+        width: 100%;
+    }
+
+    /* Tabla estilo tarjetas en móvil */
+    .data-table thead {
+        display: none;
+    }
+
+    .data-table,
+    .data-table tbody,
+    .data-table tr,
+    .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .data-table tr {
+        margin-bottom: 12px;
+        border-radius: 10px;
+        border: 1px solid var(--color-gray-200);
+        overflow: hidden;
+        background: #ffffff;
+    }
+
+    .data-table td {
+        border-bottom: 1px solid var(--color-gray-100);
+        padding: 8px 12px;
+    }
+
+    .data-table td:last-child {
+        border-bottom: none;
+    }
+
+    .actions-cell {
+        text-align: left;
+    }
+
+    .action-buttons {
+        justify-content: flex-start;
+    }
+
+    .quick-nav-buttons .btn {
+        width: 100%;
+    }
 }
 
 @media (max-width: 480px) {
@@ -853,14 +1342,221 @@
     }
 }
 
-/* Utilidades para texto */
-.text-danger { color: #dc2626 !important; }
-.text-muted { color: var(--color-gray-500) !important; }
+/* ============================================
+   FORMULARIO DE INSTALACIÓN (ADD / EDIT)
+   ============================================ */
 
-.panel-footer {
-    margin-top: 24px;
+.form-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-instalacion {
+    background: #ffffff;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--color-gray-200);
+    overflow: hidden;
+}
+
+/* Header del Formulario */
+.form-header {
+    background: linear-gradient(135deg, var(--color-uhu-red) 0%, var(--color-uhu-red-dark) 100%);
+    padding: 24px 32px;
+    color: white;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.form-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Cuerpo del Formulario */
+.form-body {
+    padding: 32px;
+}
+
+.instalacion-form {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Grupos y Controles */
+.form-group {
+    margin-bottom: 24px;
+}
+
+/* Fila de dos columnas para Tipo y Ubicación */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--color-gray-700);
+    font-size: 0.95rem;
+}
+
+.form-label i {
+    color: var(--color-uhu-red);
+    width: 20px;
+    text-align: center;
+    margin-right: 4px;
+}
+
+.form-control,
+.form-select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    color: var(--color-text-primary);
+    background-color: #fff;
+    transition: var(--transition);
+    font-family: inherit;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--color-uhu-red);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-uhu-red-light);
+}
+
+.form-control::placeholder {
+    color: var(--color-gray-400);
+}
+
+textarea.form-control {
+    resize: vertical; /* Permitir redimensionar solo verticalmente */
+    min-height: 100px;
+}
+
+/* Textos de ayuda */
+.form-help {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--color-gray-500);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: space-between; /* Para separar el texto del contador */
+}
+
+.caracteres-contador {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--color-gray-400);
+}
+
+/* Estilos específicos para la carga de imagen */
+.form-group-image {
+    margin-top: 8px;
+}
+
+.file-input {
+    display: none; /* Ocultar el input file nativo */
+}
+
+.image-preview {
+    width: 100%;
+    height: 280px;
+    background-color: var(--color-gray-50);
+    border: 2px dashed var(--color-gray-300);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    transition: var(--transition);
+    margin-top: 8px;
+}
+
+.image-preview:hover {
+    border-color: var(--color-uhu-red);
+    background-color: var(--color-uhu-red-lighter);
+}
+
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.image-preview:hover img {
+    transform: scale(1.02);
+}
+
+.image-preview-placeholder {
     text-align: center;
     color: var(--color-gray-500);
-    font-size: 12px;
-    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+}
+
+.image-preview-placeholder i {
+    font-size: 48px;
+    color: var(--color-gray-300);
+    transition: var(--transition);
+}
+
+.image-preview:hover .image-preview-placeholder i {
+    color: var(--color-uhu-red);
+    transform: scale(1.1);
+}
+
+.image-preview-placeholder span {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+/* Footer con botones de acción */
+.form-actions {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--color-gray-200);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    align-items: center;
+}
+
+/* Responsive para el formulario */
+@media (max-width: 768px) {
+    .form-body {
+        padding: 20px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr; /* Apilar columnas en móvil */
+        gap: 0;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse; /* Botón guardar arriba en móvil */
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
+    
+    .image-preview {
+        height: 200px;
+    }
 }

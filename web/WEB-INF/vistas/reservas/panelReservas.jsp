@@ -1,9 +1,10 @@
 <%-- 
-    Document   : panelReservas
+    Document   : panelReservas.jsp
     Created on : 13 nov 2025
     Author     : agustinrodriguez
-    
-    Panel administrativo de reservas - Solo para administradores
+    Description: PANEL DE GESTIÓN DE RESERVAS (ADMINISTRADOR)
+                 Vista tabular de todas las reservas del sistema.
+                 Permite filtrar, editar y cancelar cualquier reserva.
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
@@ -11,7 +12,9 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 
 <div class="panel-content">
+    
     <div class="table-container">
+        
         <div class="table-header">
             <h2>Gestión de Reservas</h2>
             <div class="table-stats">
@@ -51,6 +54,7 @@
                                     </div>
                                 </div>
                             </td>
+                            
                             <td>
                                 <div class="table-user">
                                     <div class="user-avatar">
@@ -61,23 +65,28 @@
                                     <span class="user-name">${reserva.usuario.nombre}</span>
                                 </div>
                             </td>
+                            
                             <td class="table-dni">
                                 <fmt:formatDate value="${reserva.inicioDate}" pattern="dd/MM/yyyy"/>
                             </td>
+                            
                             <td class="table-email">
                                 <fmt:formatDate value="${reserva.inicioDate}" pattern="HH:mm"/> - 
                                 <fmt:formatDate value="${reserva.finDate}" pattern="HH:mm"/>
                             </td>
+                            
                             <td>
                                 <div class="table-actions">
                                     <a href="${pageContext.request.contextPath}/reservas/editar?id=${reserva.id}" 
-                                       class="action-btn action-edit" title="Editar reserva">
+                                       class="action-btn action-edit" 
+                                       title="Editar reserva">
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                         </svg>
                                     </a>
                                     <a href="${pageContext.request.contextPath}/reservas/borrar?id=${reserva.id}" 
-                                       class="action-btn action-delete" title="Eliminar reserva" 
+                                       class="action-btn action-delete" 
+                                       title="Eliminar reserva" 
                                        onclick="return confirm('¿Estás seguro de que deseas eliminar esta reserva?')">
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
