@@ -1507,3 +1507,24 @@
             gap: 8px;
         }
     }
+
+    /* ============================================
+   FIX: FORMULARIO RESERVA EN MÓVIL
+   Forzar que los campos de fecha y hora se apilen verticalmente
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Apunta específicamente a las filas dentro de los pasos de la reserva */
+    .reserva-step-content .form-row {
+        display: flex !important;       /* Cambiamos Grid por Flex para control total */
+        flex-direction: column !important; /* Obliga a ponerse uno debajo del otro */
+        gap: 16px !important;
+    }
+
+    /* Asegura que los inputs ocupen el 100% del ancho disponible */
+    .reserva-step-content .form-group,
+    .reserva-step-content .input-wrapper {
+        width: 100% !important;
+        min-width: 100% !important;
+    }
+}
