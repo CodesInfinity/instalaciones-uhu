@@ -4,6 +4,10 @@ Este proyecto consiste en el desarrollo de una **aplicación web** para la **ges
 
 ---
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/CodesInfinity/instalaciones-uhu)
+
+---
+
 ## 🎯 Objetivos del proyecto
 
 - Facilitar la reserva de pistas, campos y otros espacios deportivos.
