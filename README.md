@@ -5,7 +5,8 @@ Este proyecto consiste en el desarrollo de una **aplicación web** para la **ges
 ---
 
 ## 😊 Documentación online del proyecto - Preguntame lo que quieras!
-AQUI!: [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/CodesInfinity/instalaciones-uhu) 
+Aqui!: [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/CodesInfinity/instalaciones-uhu) 
+
 ---
 
 ## 🎯 Objetivos del proyecto
