@@ -173,4 +173,4 @@
     };
 </script>
 
-<script src="${pageContext.request.contextPath}/scripts/form-reserva.js"></script>contextPath}/scripts/form-reserva.js"></script>
+<script src="${pageContext.request.contextPath}/scripts/form-reserva.js"></script>
