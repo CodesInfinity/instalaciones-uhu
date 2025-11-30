@@ -48,7 +48,7 @@ Este proyecto implementa una plataforma web completa para la gestión, reserva y
 | **Modelo** | JPA / JTA | Persistencia y gestión de transacciones. |
 | **Base de Datos** | MySQL | Motor de base de datos relacional. |
 | **Frontend** | JSP / JSTL | Vistas dinámicas con *Layout Pattern*. |
-| **Scripting** | Vanilla JS (ES6) | Validaciones AJAX y lógica de UI. |
+| **Scripting** | Vanilla JS (ES6) | Validaciones fetch y lógica de UI. |
 | **Pagos** | Stripe API | Procesamiento de transacciones bancarias. |
 
 ---
