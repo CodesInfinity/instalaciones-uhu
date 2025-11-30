@@ -1,93 +1,110 @@
-# 🏀 Aplicación Web de Reservas de Espacios Deportivos
+# 🏟️ Sistema de Gestión de Instalaciones Deportivas - UHU
 
-Este proyecto consiste en el desarrollo de una **aplicación web** para la **gestión de reservas de espacios deportivos** en la Universidad de Huelva. Permite a los usuarios registrados consultar la disponibilidad de las instalaciones, realizar reservas en tramos de 1 hora y 30 minutos, y gestionar su historial de reservas.
+![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![JSP](https://img.shields.io/badge/JSP-Jakarta-red?style=for-the-badge)
+![MySQL](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white)
+![Stripe](https://img.shields.io/badge/Stripe-635BFF?style=for-the-badge&logo=stripe&logoColor=white)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/CodesInfinity/instalaciones-uhu) 
 
----
+> **Proyecto académico** para la asignatura de *Desarrollo de Aplicaciones Web*.  
+> **Universidad de Huelva** (Curso 2025-2026).
 
-## 😊 Documentación online del proyecto - Preguntame lo que quieras!
-Aqui!: [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/CodesInfinity/instalaciones-uhu) 
-
----
-
-## 🎯 Objetivos del proyecto
-
-- Facilitar la reserva de pistas, campos y otros espacios deportivos.
-- Permitir la visualización de horarios disponibles en tiempo real.
-- Garantizar la seguridad de los datos de usuario mediante autenticación y contraseñas encriptadas.
-- Asegurar que las reservas respeten los horarios establecidos (08:30 a 20:30).
-- Ofrecer una interfaz intuitiva y accesible, adaptada a distintos dispositivos.
+Este proyecto implementa una plataforma web completa para la gestión, reserva y administración de espacios deportivos universitarios. Está construido sobre una arquitectura **MVC nativa con Java EE (Servlets/JSP)**, destacando por su gestión de transacciones robusta y una integración a bajo nivel con la pasarela de pagos Stripe.
 
 ---
 
-## ⚙️ Tecnologías utilizadas
+## 🚀 Funcionalidades Principales
 
-**Frontend:**
-- HTML5  
-- CSS3 (con soporte de Bootstrap 5)  
-- JavaScript (AJAX y validaciones)  
+### 👥 Gestión de Usuarios y Roles (RBAC)
+- **Roles Jerárquicos:** Administrador (0), Estudiante (1) y Profesor (2).
+- **Ciclo de Vida:** Registro, Login seguro (sesiones HTTP), edición de perfil y baja.
+- **Flujo de Aprobación:** Sistema para solicitar ascenso a rol de Profesor, requiriendo validación administrativa.
 
-**Backend:**
-- Java (Servlets y JSP)  
-- Patrón MVC  
-- Jakarta EE / GlassFish 7.0.14  
-- JPA (EclipseLink o Hibernate)
+### 🎾 Inventario de Instalaciones
+- **CRUD Completo:** Alta, baja y modificación de espacios deportivos.
+- **Gestión Multimedia Avanzada:** Subida de imágenes con persistencia dual (carpeta de despliegue + carpeta fuente) para mantener los archivos en entornos de desarrollo.
+- **Catálogo Público:** Filtrado y visualización de detalles técnicos.
 
-**Base de datos:**
-- Apache Derby
+### 📅 Sistema de Reservas Inteligente
+- **Algoritmo de Disponibilidad:** Generación dinámica de *slots* de 90 minutos y exclusión de fines de semana.
+- **Motor de Precios Dinámico:** Cálculo automático de tarifas basado en:
+  - Tipo de usuario (Gratis para Profesores).
+  - Posesión de Tarjeta Universitaria (TUO).
+  - Características de la pista (Suplemento por luz artificial).
+- **Integridad de Datos:** Prevención de condiciones de carrera (*Race Conditions*) para evitar dobles reservas.
 
----
-
-## 🧩 Funcionalidades principales
-
-- **Registro e inicio de sesión de usuarios** (con encriptación de contraseñas).  
-- **Gestión de espacios deportivos** (alta, baja, modificación, consulta).  
-- **Visualización dinámica de horarios disponibles** mediante AJAX.  
-- **Creación de reservas** en bloques de 1h30, evitando solapamientos.  
-- **Validación de horarios** (solo entre 08:30 y 20:30).  
-- **Roles de usuario** (estudiante / administrador).  
-- **Gestión segura de sesiones** y control de acceso a zonas restringidas.
+### 💳 Pasarela de Pagos (Stripe)
+- **Integración Nativa:** Uso de `HttpsURLConnection` para comunicar con la API REST de Stripe (sin SDKs externos).
+- **Seguridad:** Tokenización de tarjetas en el cliente mediante `Stripe.js`.
 
 ---
 
-## 🧠 Arquitectura y diseño
+## 🛠️ Stack Tecnológico
 
-El proyecto sigue el **patrón de diseño MVC (Modelo-Vista-Controlador)**:
-- **Modelo (Model):** Clases Java que representan las entidades del sistema (Usuario, EspacioDeportivo, Reserva).  
-- **Vista (View):** Páginas JSP con soporte de Bootstrap y JavaScript.  
-- **Controlador (Controller):** Servlets encargados de gestionar las peticiones y coordinar la lógica de negocio.
-
-Además, se utiliza **JPA** para la persistencia de datos y **validaciones** tanto en el lado del cliente como en el servidor.
-
----
-
-## 🕒 Reglas de negocio
-
-- Los horarios válidos de reserva son **de 08:30 a 20:30**.  
-- Cada reserva tiene una **duración fija de 1 hora y 30 minutos**.  
-- No se permiten **solapamientos** entre reservas del mismo espacio.  
-- Solo los **usuarios autenticados** pueden crear o cancelar reservas.  
+| Capa | Tecnología | Descripción |
+| :--- | :--- | :--- |
+| **Backend** | Java Servlets | Controladores con patrón Front Controller. |
+| **Modelo** | JPA / JTA | Persistencia y gestión de transacciones. |
+| **Base de Datos** | MySQL | Motor de base de datos relacional. |
+| **Frontend** | JSP / JSTL | Vistas dinámicas con *Layout Pattern*. |
+| **Scripting** | Vanilla JS (ES6) | Validaciones AJAX y lógica de UI. |
+| **Pagos** | Stripe API | Procesamiento de transacciones bancarias. |
 
 ---
 
-## 🔐 Seguridad
+## ⚙️ Instalación y Configuración
 
-- Contraseñas encriptadas con **hash SHA-256** o **BCrypt**.  
-- Validación de datos en servidor y cliente.  
-- Gestión de sesiones y control de acceso por roles.  
-- Comunicación segura mediante protocolo HTTPS (configurable en GlassFish).
+### 1. Requisitos Previos
+- **JDK 11** o superior.
+- **Servidor de Aplicaciones:** GlassFish, Payara o Tomcat.
+- **MySQL Server**.
+
+### 2. Base de Datos
+Ejecuta el script SQL ubicado en `/web/sql/database.sql` para generar el esquema de tablas iniciales.
+
+Configura la conexión en `src/conf/persistence.xml`:
+```xml
+<property name="javax.persistence.jdbc.url" value="jdbc:mysql://localhost:3306/instalaciones_uhu"/>
+<property name="javax.persistence.jdbc.user" value="root"/>
+<property name="javax.persistence.jdbc.password" value="tu_password"/>
+```
+
+3. Configuración de Stripe (Esencial para Pagos) ⚠️
+Para habilitar la pasarela de pagos en entorno local, sigue estos pasos:
+
+Navega a la carpeta: src/java/app/controladores/conf/data.
+
+Abre el archivo y copia el HASH de seguridad.
+
+Ve al archivo: src/java/app/controladores/controladorReserva.java.
+Localiza la constante STRIPE_SECRET_KEY y pega el hash después del prefijo sk_.
+
+// Ejemplo
+private static final String STRIPE_SECRET_KEY = "sk_PEGAR_TU_HASH_AQUI";
 
 ---
 
-## 🧪 Pruebas
+📂 Estructura del Proyecto
+```
+instalaciones-uhu/
+├── src/java/app/
+│   ├── controladores/    # Servlets (Lógica de negocio y API Stripe)
+│   ├── modelos/          # Entidades JPA (Usuario, Reserva, Espacio)
+│   └── servicios/        # Lógica auxiliar
+├── web/
+│   ├── img/              # Recursos gráficos
+│   ├── scripts/          # JS (Validaciones, Logout, UI)
+│   ├── styles/           # CSS modular
+│   └── WEB-INF/
+│       └── vistas/       # JSPs protegidos (Auth, Admin, Reservas)
+└── build/                # Directorio de despliegue
+```
 
-- **Pruebas funcionales:** creación, consulta y cancelación de reservas.  
-- **Pruebas de seguridad:** validación de autenticación y manejo de sesiones.  
-- **Pruebas de usabilidad:** diseño responsive y flujo intuitivo para el usuario.
+✒️ Autor
+Agustín Rodríguez Aguilar
 
----
+💻 Repositorio GitHub ```https://github.com/CodesInfinity/instalaciones-uhu/```
 
-## 🚀 Despliegue
+🌐 Web Personal / Portfolio ```https://agustinrodriguez.netlify.app/```
 
-1. Clonar el repositorio:
-   ```bash
-   git clone [(https://github.com/CodesInfinity/instalaciones-uhu.git]
+<div align="center"> <sub>Desarrollado como práctica universitaria - Escuela Técnica Superior de Ingeniería (ETSI)</sub> </div>
