@@ -4,13 +4,14 @@
 ![JSP](https://img.shields.io/badge/JSP-Jakarta-red?style=for-the-badge)
 ![MySQL](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white)
 ![Stripe](https://img.shields.io/badge/Stripe-635BFF?style=for-the-badge&logo=stripe&logoColor=white)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/CodesInfinity/instalaciones-uhu) 
 
 > **Proyecto académico** para la asignatura de *Desarrollo de Aplicaciones Web*.  
 > **Universidad de Huelva** (Curso 2025-2026).
 
 Este proyecto implementa una plataforma web completa para la gestión, reserva y administración de espacios deportivos universitarios. Está construido sobre una arquitectura **MVC nativa con Java EE (Servlets/JSP)**, destacando por su gestión de transacciones robusta y una integración a bajo nivel con la pasarela de pagos Stripe.
 
+---
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/CodesInfinity/instalaciones-uhu) 
 ---
 
 ## 🚀 Funcionalidades Principales
