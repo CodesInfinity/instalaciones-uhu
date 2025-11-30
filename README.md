@@ -106,6 +106,7 @@ Agustín Rodríguez Aguilar
 
 💻 Repositorio GitHub ```https://github.com/CodesInfinity/instalaciones-uhu/```
 
-🌐 Web Personal / Portfolio ```https://agustinrodriguez.netlify.app/```
+🌐 Web Personal ![Personal](https://agustinrodriguez.netlify.app/)
+
 
 <div align="center"> <sub>Desarrollado como práctica universitaria - Escuela Técnica Superior de Ingeniería (ETSI)</sub> </div>
