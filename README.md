@@ -104,9 +104,9 @@ instalaciones-uhu/
 ✒️ Autor
 Agustín Rodríguez Aguilar
 
-💻 Repositorio GitHub ```https://github.com/CodesInfinity/instalaciones-uhu/```
+💻 Repositorio GitHub (https://github.com/CodesInfinity/instalaciones-uhu/)
 
-🌐 Web Personal ![Personal](https://agustinrodriguez.netlify.app/)
+🌐 Web Personal (https://agustinrodriguez.netlify.app/)
 
 
 <div align="center"> <sub>Desarrollado como práctica universitaria - Escuela Técnica Superior de Ingeniería (ETSI)</sub> </div>
